@@ -1610,6 +1610,21 @@ const QC_VISIT_TYPES = {
   filter:  {label:'Αλλαγή φίλτρου',    icon:'💧', col:'var(--green)'},
 };
 
+
+const QC_MACHINES = [
+  'Victoria Arduino Adonis 3 Group',
+  'Nuova Simonelli Appia Life XT 3 Group',
+  'Nuova Simonelli Aurelia Wave 3 Group',
+  'Victoria Arduino Eagle One 3 Group',
+  'Victoria Arduino White Eagle 3 Group',
+  'Victoria Arduino Black Eagle 3 Group',
+  'Victoria Arduino Maverick 3 Group',
+];
+const QC_GRINDERS = [
+  'Ceado E37S','Ceado E37SL','Ceado E37T','Ceado E37R','Ceado E37Z Barista',
+  'Anfim Pratica','Anfim Luna','Anfim Alba',
+];
+
 const QC_ACTIONS = [
   {id:'grinder',    label:'Ρύθμιση μύλου',          icon:'⚙️'},
   {id:'burrs',      label:'Μαχαίρια μύλου',          icon:'🔪'},
@@ -3054,28 +3069,81 @@ function renderQcClients(){
     const visits=Object.values(allQcSchedule).filter(v=>v.clientKey===ck&&v.status==='done');
     const lastVisit=visits.sort((a,b)=>b.doneAt-a.doneAt)[0];
     const assignedBarista=allQcGrades[ck]?.barista||QC_BARISTAS[0]||'';
+    const eq=allQcGrades[ck]?.equipment||{};
+    const clientIssues=Object.values(allQcIssues).filter(i=>i.clientKey===ck&&i.status==='open');
+    const hasUrgent=clientIssues.some(i=>i.severity==='urgent');
+    const hasWatch=clientIssues.some(i=>i.severity==='watch');
+    const statusDot=hasUrgent?'🔴':hasWatch?'🟡':'🟢';
+    const clientVisits=Object.values(allQcSchedule).filter(v=>v.clientKey===ck&&v.status==='done');
+    const machineOpts=QC_MACHINES.map(m=>`<option value="${m}" ${eq.machine===m?'selected':''}>${m}</option>`).join('');
+    const grinderOpts=QC_GRINDERS.map(g=>`<option value="${g}" ${eq.grinder===g?'selected':''}>${g}</option>`).join('');
     html+=`<div style="background:var(--s1);border:1px solid ${active?'var(--border)':'rgba(192,80,80,0.3)'};border-radius:12px;padding:14px 16px;margin-bottom:8px;${active?'':'opacity:0.6'}">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <!-- Header row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:600;color:var(--text);">${cl.name}</div>
-          <div style="font-size:11px;color:var(--text3);">${cl.area||''} ${cl.salesRep?'· '+cl.salesRep:''}</div>
-          ${lastVisit?`<div style="font-size:11px;color:var(--green);margin-top:3px;">✓ Τελ. επίσκεψη: ${new Date(lastVisit.doneAt).toLocaleDateString('el-GR')}</div>`:''}
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;">${statusDot}</span>
+            <span style="font-size:14px;font-weight:600;color:var(--text);">${cl.name}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${cl.area||''} ${cl.salesRep?'· '+cl.salesRep:''} · ${clientVisits.length} επισκέψεις</div>
+          ${lastVisit?`<div style="font-size:11px;color:var(--green);margin-top:2px;">✓ Τελ. επίσκεψη: ${new Date(lastVisit.doneAt).toLocaleDateString('el-GR')}</div>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;">
           <select onchange="setQcBarista('${ck}',this.value)"
             style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
             ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista?'selected':''}>${b}</option>`).join('')}
           </select>
           ${['A','B','C'].map(g=>`<button onclick="setQcGrade('${ck}','${g}')"
-            style="width:32px;height:32px;border-radius:8px;border:2px solid ${grade===g?QC_GRADES[g].col:'var(--border)'};
+            style="width:30px;height:30px;border-radius:7px;border:2px solid ${grade===g?QC_GRADES[g].col:'var(--border)'};
             background:${grade===g?'rgba('+hexToRgb(QC_GRADES[g].col)+',0.15)':'var(--s2)'};
-            color:${grade===g?QC_GRADES[g].col:'var(--text3)'};font-weight:700;cursor:pointer;font-size:13px;">
+            color:${grade===g?QC_GRADES[g].col:'var(--text3)'};font-weight:700;cursor:pointer;font-size:12px;">
             ${QC_GRADES[g].label}</button>`).join('')}
           <button onclick="toggleQcClientActive('${ck}',${active})"
-            style="padding:6px 10px;border-radius:8px;border:1px solid ${active?'rgba(90,170,122,0.4)':'rgba(192,80,80,0.4)'};
+            style="padding:5px 9px;border-radius:7px;border:1px solid ${active?'rgba(90,170,122,0.4)':'rgba(192,80,80,0.4)'};
             background:${active?'rgba(90,170,122,0.08)':'rgba(192,80,80,0.08)'};
             color:${active?'var(--green)':'var(--red)'};cursor:pointer;font-size:11px;font-family:monospace;">
             ${active?'✓ Ενεργός':'✗ Ανενεργός'}</button>
+        </div>
+      </div>
+      <!-- Equipment row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:10px;border-top:1px solid var(--border);">
+        <div>
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:4px;">☕ ΜΗΧΑΝΗ</div>
+          <select onchange="setQcEquipment('${ck}','machine',this.value)"
+            style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:11px;">
+            <option value="">— Επιλέξτε —</option>
+            ${machineOpts}
+            <option value="__other__" ${eq.machine&&!QC_MACHINES.includes(eq.machine)?'selected':''}>Άλλο...</option>
+          </select>
+          ${eq.machine&&!QC_MACHINES.includes(eq.machine)?`<input type="text" value="${eq.machine}" onchange="setQcEquipment('${ck}','machine',this.value)"
+            style="width:100%;margin-top:4px;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:11px;">`:
+            eq.machine===undefined||QC_MACHINES.includes(eq.machine)?'':
+            `<input type="text" placeholder="Μοντέλο μηχανής..." onchange="setQcEquipment('${ck}','machine',this.value)"
+            style="width:100%;margin-top:4px;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:11px;">`}
+        </div>
+        <div>
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:4px;">⚙️ ΜΥΛΟΣ</div>
+          <select onchange="setQcEquipment('${ck}','grinder',this.value)"
+            style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:11px;">
+            <option value="">— Επιλέξτε —</option>
+            ${grinderOpts}
+            <option value="__other__" ${eq.grinder&&!QC_GRINDERS.includes(eq.grinder)?'selected':''}>Άλλο...</option>
+          </select>
+          ${eq.grinder&&!QC_GRINDERS.includes(eq.grinder)?`<input type="text" value="${eq.grinder}" onchange="setQcEquipment('${ck}','grinder',this.value)"
+            style="width:100%;margin-top:4px;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:11px;">`:
+            eq.grinder===undefined||QC_GRINDERS.includes(eq.grinder)?'':
+            `<input type="text" placeholder="Μοντέλο μύλου..." onchange="setQcEquipment('${ck}','grinder',this.value)"
+            style="width:100%;margin-top:4px;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:11px;">`}
+        </div>
+        <div>
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:4px;">⚙️ ΑΡΙΘΜΟΣ ΜΥΛΩΝ</div>
+          <div style="display:flex;gap:6px;">
+            ${[1,2].map(n=>`<button onclick="setQcEquipment('${ck}','grinderCount',${n})"
+              style="flex:1;padding:6px;border-radius:7px;border:2px solid ${(eq.grinderCount||1)===n?'var(--gold)':'var(--border)'};
+              background:${(eq.grinderCount||1)===n?'rgba(201,168,76,0.12)':'var(--s2)'};
+              color:${(eq.grinderCount||1)===n?'var(--gold)':'var(--text3)'};cursor:pointer;font-size:13px;font-weight:700;">
+              ${n}</button>`).join('')}
+          </div>
         </div>
       </div>
     </div>`;
@@ -3089,6 +3157,14 @@ function hexToRgb(hex){
   return r+','+g+','+b;
 }
 
+
+
+window.setQcEquipment=(ck,field,value)=>{
+  if(value==='__other__') return; // wait for text input
+  const eq=allQcGrades[ck]?.equipment||{};
+  eq[field]=value;
+  qcGradesRef.child(ck).update({equipment:eq});
+};
 
 window.setQcBarista=(ck,barista)=>{
   qcGradesRef.child(ck).update({barista});
