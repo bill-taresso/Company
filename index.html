@@ -1583,6 +1583,18 @@ const QC_VISIT_TYPES = {
   install: {label:'Εγκατάσταση',        icon:'🔧', col:'var(--gold)'},
   filter:  {label:'Αλλαγή φίλτρου',    icon:'💧', col:'var(--green)'},
 };
+
+const QC_ACTIONS = [
+  {id:'grinder',    label:'Ρύθμιση μύλου',          icon:'⚙️'},
+  {id:'burrs',      label:'Μαχαίρια μύλου',          icon:'🔪'},
+  {id:'clump',      label:'Clump crusher',            icon:'🔧'},
+  {id:'recipe',     label:'Έλεγχος συνταγής',        icon:'📋'},
+  {id:'temp',       label:'Θερμοκρασία μηχανής',     icon:'🌡️'},
+  {id:'seals',      label:'Τσεκ σίτες & λάστιχα',   icon:'🔩'},
+  {id:'taste',      label:'Γευστική δοκιμή',         icon:'☕'},
+  {id:'training_onsite', label:'Εκπαίδευση στο σημείο',   icon:'👨‍🏫'},
+  {id:'training_hq',     label:'Εκπαίδευση στην εταιρεία',icon:'🏢'},
+];
 const QC_BARISTAS = USERS.filter(u=>['qc_mgr','qc'].includes(u.role)).map(u=>u.name);
 let qvType = 'check';
 
@@ -1711,7 +1723,9 @@ function renderQcDayVisits(isManager){
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
             ${isDone
-              ?`<div style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;">✅ Ολοκληρώθηκε</div>`
+              ?`<div style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;">✅ Ολοκληρώθηκε</div>
+            ${v.actions&&v.actions.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${v.actions.map(aid=>{const a=QC_ACTIONS.find(x=>x.id===aid);return a?`<span style="font-size:10px;background:rgba(90,170,122,0.12);border:1px solid rgba(90,170,122,0.3);border-radius:4px;padding:2px 6px;color:var(--green);">${a.icon} ${a.label}</span>`:''}).join('')}</div>`:''}
+            ${v.notes?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">💬 ${v.notes}</div>`:''}` 
               :`<button class="btn" style="padding:8px 14px;font-size:12px;" onclick="completeQcVisit('${vk}')">✓ Τέλος</button>`}
             ${isManager&&!isDone?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);margin-bottom:4px;" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button><button class="qfc-mbtn" style="color:var(--red);border-color:rgba(192,80,80,0.3);" onclick="deleteQcVisit('${vk}')">✕ Διαγραφή</button>`:''}
           </div>
@@ -1780,7 +1794,30 @@ window.saveQcVisit=()=>{
 };
 
 window.completeQcVisit=(key)=>{
-  qcScheduleRef.child(key).update({status:'done',doneBy:currentUser.name,doneAt:Date.now()});
+  const v=allQcSchedule[key];
+  if(!v) return;
+  document.getElementById('cvKey').value=key;
+  document.getElementById('cvClientName').textContent=v.clientName||'';
+  // render checkboxes
+  document.getElementById('cvActions').innerHTML=QC_ACTIONS.map(a=>`
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:6px;">
+      <input type="checkbox" id="cva_${a.id}" value="${a.id}" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
+      <span style="font-size:15px;">${a.icon}</span>
+      <span style="font-size:13px;color:var(--text);">${a.label}</span>
+    </label>`).join('');
+  document.getElementById('cvNotes').value='';
+  document.getElementById('completeVisitModal').style.display='flex';
+};
+
+window.saveCompleteVisit=()=>{
+  const key=document.getElementById('cvKey').value;
+  const actions=QC_ACTIONS.filter(a=>document.getElementById('cva_'+a.id)?.checked).map(a=>a.id);
+  const notes=document.getElementById('cvNotes').value.trim();
+  qcScheduleRef.child(key).update({
+    status:'done', doneBy:currentUser.name, doneAt:Date.now(),
+    actions, notes
+  });
+  document.getElementById('completeVisitModal').style.display='none';
   toast('✅ Ολοκληρώθηκε!');
 };
 
@@ -3135,6 +3172,25 @@ if(document.readyState==='loading'){
     <div style="display:flex;gap:10px;">
       <button class="btng" style="flex:1;" onclick="document.getElementById('editVisitModal').style.display='none'">Ακύρωση</button>
       <button class="btn" style="flex:1;" onclick="saveEditVisit()">Αποθήκευση</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COMPLETE VISIT MODAL ══ -->
+<div id="completeVisitModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:420px;">
+    <div style="font-size:16px;font-weight:700;color:var(--gold);margin-bottom:4px;">✅ Ολοκλήρωση Επίσκεψης</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;" id="cvClientName"></div>
+    <input type="hidden" id="cvKey">
+    <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Ενέργειες που έγιναν</div>
+    <div id="cvActions"></div>
+    <div style="margin-top:12px;">
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Σημειώσεις (προαιρετικό)</div>
+      <textarea id="cvNotes" placeholder="π.χ. χρειάζεται νέο φίλτρο, ζήτησε demo..." style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:13px;height:70px;resize:none;outline:none;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btng" style="flex:1;" onclick="document.getElementById('completeVisitModal').style.display='none'">Ακύρωση</button>
+      <button class="btn" style="flex:1;" onclick="saveCompleteVisit()">✅ Αποθήκευση</button>
     </div>
   </div>
 </div>
