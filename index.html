@@ -781,15 +781,33 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
     <div class="sec-title">🔍 Quality Control</div>
   </div>
   <div class="tabs" id="qcTabs">
-    <div class="tab active" id="qtSchedule" onclick="qcTab('schedule')">📅 Πρόγραμμα</div>
+    <div class="tab active" id="qtDash"     onclick="qcTab('dash')">🏠 Dashboard</div>
+    <div class="tab"        id="qtSchedule" onclick="qcTab('schedule')">📅 Πρόγραμμα</div>
     <div class="tab"        id="qtFilters"  onclick="qcTab('filters')">💧 Φίλτρα</div>
-    <div class="tab"        id="qtLog"      onclick="qcTab('log')" id="qtLog">+ Φίλτρο</div>
+    <div class="tab"        id="qtLog"      onclick="qcTab('log')">+ Φίλτρο</div>
     <div class="tab"        id="qtHistory"  onclick="qcTab('history')">Ιστορικό</div>
     <div class="tab"        id="qtClients"  onclick="qcTab('clients')">👥 Πελάτες</div>
   </div>
 
+
+  <!-- DASHBOARD -->
+  <div id="qc-dash">
+    <main>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <div class="stitle">QC Dashboard</div>
+          <div class="ssub" id="qcDashDate"></div>
+        </div>
+      </div>
+      <!-- Status summary -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;" id="qcStatusSummary"></div>
+      <!-- Issues feed -->
+      <div id="qcIssuesFeed"></div>
+    </main>
+  </div>
+
   <!-- SCHEDULE -->
-  <div id="qc-schedule">
+  <div id="qc-schedule" style="display:none">
     <!-- Week nav bar -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--s1);">
       <button class="back-btn" onclick="qcChangeWeek(-1)">← Προηγ.</button>
@@ -1051,6 +1069,7 @@ const qcRef        = db.ref('taresso_qc_filters');
 const productsRef  = db.ref('taresso_products');
 const qcScheduleRef= db.ref('taresso_qc_schedule');
 const qcGradesRef  = db.ref('taresso_qc_grades');
+const qcIssuesRef  = db.ref('taresso_qc_issues');
 
 // ── USER DEFINITIONS ──
 const USERS = [
@@ -1134,6 +1153,7 @@ let currentUser=null, allProdLogs=[], allSalesLogs=[], sharedInvItems={};
 let allOrders=[], allClients={}, allQcFilters={}, allQcSchedule={}, allProductsCatalog={};
 let qcWeekOffset=0;
 let allQcGrades={};
+let allQcIssues={};
 const PRODUCTS = [
   'Tigrato Blend 1kg','Supremo Blend 1kg','Yebuna Bloom 1kg',
   'Yebuna Kersie 1kg','Yebuna Ligaam 1kg','Xocoyo Criollo Bliss 1kg','Decaf 1kg'
@@ -1173,6 +1193,10 @@ productsRef.on('value',snap=>{ allProductsCatalog=snap.val()||{}; });
 qcGradesRef.on('value',snap=>{
   allQcGrades=snap.val()||{};
   renderQcClients();
+});
+qcIssuesRef.on('value',snap=>{
+  allQcIssues=snap.val()||{};
+  renderQcDashboard();
 });
 qcScheduleRef.on('value',snap=>{
   allQcSchedule=snap.val()||{};
@@ -1543,10 +1567,11 @@ window.openInvoicing=()=>{
 };
 window.openQC=()=>{
   enableQcDragDrop();
+  const isManager=['admin','qc_mgr'].includes(currentUser?.role)||currentUser?.name==='Λευτέρης Γούναρης';
   document.getElementById('hubScreen').style.display='none';
   document.getElementById('qcSection').style.display='block';
   setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}),0);
-  qcTab('schedule');
+  qcTab('dash');
 };
 
 // ── QC MODULE ──
@@ -1559,7 +1584,7 @@ window.qcTab=(tab)=>{
   // Hide clients tab for non-managers
   const qtClients=document.getElementById('qtClients');
   if(qtClients) qtClients.style.display=canManageQcClients(currentUser)?'':'none';
-  ['schedule','filters','log','history','clients'].forEach(t=>{
+  ['dash','schedule','filters','log','history','clients'].forEach(t=>{
     const sec=document.getElementById('qc-'+t);
     if(sec) sec.style.display=t===tab?'':'none';
     // map tab id
@@ -1567,6 +1592,7 @@ window.qcTab=(tab)=>{
     const el=document.getElementById(idMap[t]);
     if(el) el.classList.toggle('active',t===tab);
   });
+  if(tab==='dash') renderQcDashboard();
   if(tab==='schedule') renderQcSchedule();
   if(tab==='clients'){ renderQcClients(); }
   if(tab==='clients') renderQcClients();
@@ -1793,12 +1819,29 @@ window.saveQcVisit=()=>{
   toast('✓ Επίσκεψη προστέθηκε!');
 };
 
+let cvCurrentStatus='ok';
+
+window.setCvStatus=(s)=>{
+  cvCurrentStatus=s;
+  ['ok','watch','urgent'].forEach(st=>{
+    const btn=document.getElementById('cvStatus'+st.charAt(0).toUpperCase()+st.slice(1));
+    if(!btn) return;
+    const configs={ok:{border:'rgba(90,170,122,0.5)',bg:'rgba(90,170,122,0.12)',col:'var(--green)'},
+      watch:{border:'rgba(212,160,48,0.5)',bg:'rgba(212,160,48,0.10)',col:'#d4a030'},
+      urgent:{border:'rgba(192,80,80,0.5)',bg:'rgba(192,80,80,0.10)',col:'var(--red)'}};
+    const active=st===s;
+    btn.style.border=`2px solid ${active?configs[st].border:'var(--border)'}`;
+    btn.style.background=active?configs[st].bg:'var(--s2)';
+    btn.style.color=active?configs[st].col:'var(--text3)';
+  });
+  document.getElementById('cvIssueWrap').style.display=(s==='ok')?'none':'block';
+};
+
 window.completeQcVisit=(key)=>{
   const v=allQcSchedule[key];
   if(!v) return;
   document.getElementById('cvKey').value=key;
   document.getElementById('cvClientName').textContent=v.clientName||'';
-  // render checkboxes
   document.getElementById('cvActions').innerHTML=QC_ACTIONS.map(a=>`
     <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:6px;">
       <input type="checkbox" id="cva_${a.id}" value="${a.id}" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
@@ -1806,17 +1849,31 @@ window.completeQcVisit=(key)=>{
       <span style="font-size:13px;color:var(--text);">${a.label}</span>
     </label>`).join('');
   document.getElementById('cvNotes').value='';
+  document.getElementById('cvIssueDesc').value='';
+  cvCurrentStatus='ok';
+  setCvStatus('ok');
   document.getElementById('completeVisitModal').style.display='flex';
 };
 
 window.saveCompleteVisit=()=>{
   const key=document.getElementById('cvKey').value;
+  const v=allQcSchedule[key];
   const actions=QC_ACTIONS.filter(a=>document.getElementById('cva_'+a.id)?.checked).map(a=>a.id);
   const notes=document.getElementById('cvNotes').value.trim();
+  const issueDesc=document.getElementById('cvIssueDesc').value.trim();
   qcScheduleRef.child(key).update({
     status:'done', doneBy:currentUser.name, doneAt:Date.now(),
-    actions, notes
+    actions, notes, visitStatus:cvCurrentStatus
   });
+  // If not OK, create issue
+  if(cvCurrentStatus!=='ok'&&issueDesc){
+    qcIssuesRef.push({
+      clientKey:v.clientKey, clientName:v.clientName,
+      severity:cvCurrentStatus, description:issueDesc,
+      barista:currentUser.name, visitKey:key,
+      status:'open', createdAt:Date.now()
+    });
+  }
   document.getElementById('completeVisitModal').style.display='none';
   toast('✅ Ολοκληρώθηκε!');
 };
@@ -2906,6 +2963,81 @@ window.closeScanner = () => {
 });
 
 
+
+// ── QC DASHBOARD ──
+const QC_STATUS = {
+  ok:      {label:'Όλα καλά',      icon:'🟢', col:'var(--green)',  bg:'rgba(90,170,122,0.08)',  border:'rgba(90,170,122,0.3)'},
+  watch:   {label:'Παρακολούθηση', icon:'🟡', col:'#d4a030',       bg:'rgba(212,160,48,0.08)',  border:'rgba(212,160,48,0.35)'},
+  urgent:  {label:'Επείγον',       icon:'🔴', col:'var(--red)',    bg:'rgba(192,80,80,0.08)',   border:'rgba(192,80,80,0.35)'},
+};
+
+function renderQcDashboard(){
+  const dateEl=document.getElementById('qcDashDate');
+  if(dateEl) dateEl.textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  const openIssues=Object.entries(allQcIssues).filter(([,i])=>i.status==='open');
+  const urgent=openIssues.filter(([,i])=>i.severity==='urgent');
+  const watch=openIssues.filter(([,i])=>i.severity==='watch');
+
+  // Summary cards
+  const sumEl=document.getElementById('qcStatusSummary');
+  if(sumEl) sumEl.innerHTML=[
+    {label:'Επείγον',col:'var(--red)',bg:'rgba(192,80,80,0.08)',border:'rgba(192,80,80,0.3)',count:urgent.length,icon:'🔴'},
+    {label:'Παρακολούθηση',col:'#d4a030',bg:'rgba(212,160,48,0.08)',border:'rgba(212,160,48,0.3)',count:watch.length,icon:'🟡'},
+    {label:'Ανοιχτά',col:'var(--text2)',bg:'var(--s2)',border:'var(--border)',count:openIssues.length,icon:'📋'},
+  ].map(s=>`<div style="background:${s.bg};border:1px solid ${s.border};border-radius:12px;padding:14px;text-align:center;">
+    <div style="font-size:22px;margin-bottom:4px;">${s.icon}</div>
+    <div style="font-size:24px;font-weight:700;color:${s.col};">${s.count}</div>
+    <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${s.label}</div>
+  </div>`).join('');
+
+  const feedEl=document.getElementById('qcIssuesFeed');
+  if(!feedEl) return;
+
+  if(!openIssues.length){
+    feedEl.innerHTML=`<div style="text-align:center;padding:40px 20px;background:rgba(90,170,122,0.06);border:1px solid rgba(90,170,122,0.25);border-radius:14px;">
+      <div style="font-size:36px;margin-bottom:8px;">🟢</div>
+      <div style="font-size:16px;font-weight:600;color:var(--green);">Όλα καλά!</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px;">Δεν υπάρχουν ανοιχτά προβλήματα</div>
+    </div>`;
+    return;
+  }
+
+  // Sort: urgent first, then watch, then by date desc
+  const sorted=[...urgent,...watch].sort((a,b)=>{
+    if(a[1].severity!==b[1].severity) return a[1].severity==='urgent'?-1:1;
+    return (b[1].createdAt||0)-(a[1].createdAt||0);
+  });
+
+  const isManager=['admin','qc_mgr'].includes(currentUser?.role)||currentUser?.name==='Λευτέρης Γούναρης';
+
+  feedEl.innerHTML=`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Ανοιχτά Προβλήματα (${openIssues.length})</div>`+
+  sorted.map(([ik,issue])=>{
+    const st=QC_STATUS[issue.severity]||QC_STATUS.watch;
+    const d=new Date(issue.createdAt).toLocaleDateString('el-GR',{day:'numeric',month:'short'});
+    return `<div style="background:${st.bg};border:1px solid ${st.border};border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="font-size:16px;">${st.icon}</span>
+            <span style="font-size:14px;font-weight:700;color:${st.col};">${st.label}</span>
+            <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${d}</span>
+          </div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">${issue.clientName||'—'}</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">📝 ${issue.description||'—'}</div>
+          <div style="font-size:11px;color:var(--text3);">👤 ${issue.barista||'—'}</div>
+        </div>
+        ${isManager?`<button class="btn" style="padding:7px 14px;font-size:12px;background:rgba(90,170,122,0.15);border-color:rgba(90,170,122,0.4);color:var(--green);" onclick="resolveQcIssue('${ik}')">✓ Επίλυση</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.resolveQcIssue=(ik)=>{
+  qcIssuesRef.child(ik).update({status:'resolved',resolvedBy:currentUser.name,resolvedAt:Date.now()});
+  toast('✓ Πρόβλημα επιλύθηκε!');
+};
+
 // ── QC CLIENTS ──
 const QC_GRADES = {A:{label:'Α',visits:4,col:'#c9a84c'},B:{label:'Β',visits:2,col:'#6aa8d0'},C:{label:'Γ',visits:1,col:'#5aaa7a'}};
 
@@ -3184,9 +3316,19 @@ if(document.readyState==='loading'){
     <input type="hidden" id="cvKey">
     <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Ενέργειες που έγιναν</div>
     <div id="cvActions"></div>
-    <div style="margin-top:12px;">
-      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Σημειώσεις (προαιρετικό)</div>
-      <textarea id="cvNotes" placeholder="π.χ. χρειάζεται νέο φίλτρο, ζήτησε demo..." style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:13px;height:70px;resize:none;outline:none;"></textarea>
+    <div style="margin-top:14px;">
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Κατάσταση επίσκεψης</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        <button id="cvStatusOk" onclick="setCvStatus('ok')" style="padding:10px 6px;border-radius:9px;border:2px solid rgba(90,170,122,0.5);background:rgba(90,170,122,0.12);color:var(--green);cursor:pointer;font-size:12px;font-weight:700;">🟢 Όλα καλά</button>
+        <button id="cvStatusWatch" onclick="setCvStatus('watch')" style="padding:10px 6px;border-radius:9px;border:2px solid var(--border);background:var(--s2);color:var(--text3);cursor:pointer;font-size:12px;font-weight:700;">🟡 Παρακολούθηση</button>
+        <button id="cvStatusUrgent" onclick="setCvStatus('urgent')" style="padding:10px 6px;border-radius:9px;border:2px solid var(--border);background:var(--s2);color:var(--text3);cursor:pointer;font-size:12px;font-weight:700;">🔴 Επείγον</button>
+      </div>
+      <div id="cvIssueWrap" style="display:none;margin-bottom:10px;">
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Περιγραφή προβλήματος</div>
+        <textarea id="cvIssueDesc" placeholder="π.χ. χαμηλή θερμοκρασία μηχανής, μαχαίρια φθαρμένα..." style="width:100%;background:var(--s2);border:1px solid rgba(192,80,80,0.4);color:var(--text);padding:10px 12px;border-radius:8px;font-size:13px;height:70px;resize:none;outline:none;"></textarea>
+      </div>
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Σημειώσεις (προαιρετικό)</div>
+      <textarea id="cvNotes" placeholder="π.χ. χρειάζεται νέο φίλτρο, ζήτησε demo..." style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:13px;height:60px;resize:none;outline:none;"></textarea>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btng" style="flex:1;" onclick="document.getElementById('completeVisitModal').style.display='none'">Ακύρωση</button>
