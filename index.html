@@ -2607,7 +2607,7 @@ function renderOrderProductsFiltered(isFirstOrder){
     : orderAllProds.filter(p=>p.category===orderActiveCat);
 
   const header = isFirstOrder&&orderActiveCat==='Ιστορικό'
-    ? '<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--blue);margin-bottom:10px;">ℹ Πρώτη παραγγελία — επιλέξτε κατηγορία</div>'
+    ? '<div style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--blue);margin-bottom:10px;">ℹ Πρώτη παραγγελία — επιλέξτε κατηγορία</div>'
     : '';
 
   if(!prods.length){
@@ -2629,8 +2629,8 @@ function renderOrderProductsFiltered(isFirstOrder){
 
 function renderOrderProductsList(prods, lastQtyMap, isFirstOrder){
   const header = isFirstOrder
-    ? '<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--blue);margin-bottom:10px;">ℹ Πρώτη παραγγελία — εμφανίζονται όλα τα προϊόντα</div>'
-    : '<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:10px;">Προϊόντα πελάτη · <span style="color:var(--gold)">+ Προσθήκη νέου</span> αν χρειαστεί</div>';
+    ? '<div style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--blue);margin-bottom:10px;">ℹ Πρώτη παραγγελία — εμφανίζονται όλα τα προϊόντα</div>'
+    : '<div style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--text3);margin-bottom:10px;">Προϊόντα πελάτη · <span style="color:var(--gold)">+ Προσθήκη νέου</span> αν χρειαστεί</div>';
 
   const rows = prods.map((p,i)=>`
     <div class="prod-row" id="prow-${i}">
