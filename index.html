@@ -456,6 +456,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
     <div class="lsub">Company Operations</div>
 
     <!-- Step 1: choose user -->
+    <div id="deptStep" style="display:none;"></div>
     <div id="userStep">
       <span class="llabel">Επιλέξτε χρήστη</span>
       <div class="ugrid" id="userGrid"></div>
@@ -1231,12 +1232,7 @@ function showDeptSelector(){
   document.getElementById('userStep').style.display='none';
   document.getElementById('pinStep').style.display='none';
   document.getElementById('bioStep').style.display='none';
-  let deptStep = document.getElementById('deptStep');
-  if(!deptStep){
-    deptStep = document.createElement('div');
-    deptStep.id = 'deptStep';
-    document.querySelector('.lcard').insertBefore(deptStep, document.getElementById('userStep'));
-  }
+  const deptStep = document.getElementById('deptStep');
   deptStep.style.display='block';
   deptStep.innerHTML = `
     <span class="llabel">Επιλέξτε τμήμα</span>
@@ -2833,7 +2829,11 @@ window.closeScanner = () => {
 });
 
 // ── INIT ──
-buildLogin();
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',buildLogin);
+} else {
+  buildLogin();
+}
 </script>
 </div>
 </body>
