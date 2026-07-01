@@ -127,6 +127,10 @@ header{
 
 /* ── QC DAY BUTTONS ── */
 .qc-day-btn{
+  flex:1;min-width:calc(20% - 8px);max-width:calc(20% - 2px);
+  background:var(--s1);border:1px solid var(--border);border-radius:9px;
+  padding:10px 6px;text-align:center;cursor:pointer;transition:all 0.15s;
+}
   flex-shrink:0;min-width:56px;padding:8px 6px;border-radius:10px;
   border:2px solid var(--border);background:var(--s2);
   cursor:pointer;transition:all 0.18s;text-align:center;
@@ -651,7 +655,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
             <div class="op-desc">Αποστολή παραγγελίας στην τιμολόγηση</div>
             <div class="op-badge" style="border:1px solid rgba(201,168,76,0.35);color:var(--gold);background:rgba(201,168,76,0.07);">Παραγγελία</div>
           </div>
-          <div class="op-btn" id="installOpBtn" onclick="openNewInstall(); markInstallSeen();" style="grid-column:1/-1;border-color:rgba(90,170,122,0.3);position:relative;">
+          <div class="op-btn" id="installOpBtn" onclick="openNewInstall();" style="grid-column:1/-1;border-color:rgba(90,170,122,0.3);position:relative;">
             <div class="op-icon">🏪</div>
             <div class="op-name">Άνοιγμα Νέου Πελάτη <span id="installBadge" style="display:none;background:#c05050;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:6px;vertical-align:middle;">!</span></div>
             <div class="op-desc">Εγκατάσταση · Εξοπλισμός · Διαφημιστικό υλικό</div>
@@ -838,7 +842,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <button class="back-btn" onclick="qcChangeWeek(1)">Επόμ. →</button>
     </div>
     <!-- Day buttons -->
-    <div style="display:flex;gap:6px;padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border);overflow-x:auto;" id="qcDayBtns"></div>
+    <div style="display:flex;gap:6px;padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border);flex-wrap:wrap;" id="qcDayBtns"></div>
     <!-- Auto-suggest banner -->
     <div id="qcSuggestBanner" style="display:none;margin:12px 16px 0;background:rgba(106,168,208,0.08);border:1px solid rgba(106,168,208,0.3);border-radius:10px;padding:12px 14px;">
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--blue);font-weight:700;margin-bottom:8px;">💧 ΦΙΛΤΡΑ ΠΟΥ ΧΡΕΙΑΖΟΝΤΑΙ ΠΡΟΓΡΑΜΜΑΤΙΣΜΟ</div>
@@ -1756,6 +1760,13 @@ function getWeekDates(offset){
   });
 }
 
+function getTwoWeekDates(offset){
+  // Returns 10 working days: current week + next week (based on offset)
+  const w1=getWeekDates(offset);
+  const w2=getWeekDates(offset+1);
+  return [...w1,...w2];
+}
+
 function dateKey(d){ return d.toISOString().split('T')[0]; }
 
 let qcSelectedDay = dateKey(new Date());
@@ -1764,11 +1775,11 @@ function renderQcSchedule(){
   const isManager=['admin','qc_mgr'].includes(currentUser?.role);
   document.getElementById('qcAddVisitWrap').style.display=isManager?'block':'none';
 
-  const dates=getWeekDates(qcWeekOffset);
-  const mon=dates[0], fri=dates[4];
+  const dates=getTwoWeekDates(qcWeekOffset);
+  const mon=dates[0], fri=dates[9];
   const todayKey=dateKey(new Date());
 
-  // If selected day not in this week, reset to today or Monday
+  // If selected day not in these two weeks, reset to today or first Monday
   if(!dates.some(d=>dateKey(d)===qcSelectedDay)){
     qcSelectedDay=dates.some(d=>dateKey(d)===todayKey)?todayKey:dateKey(dates[0]);
   }
@@ -1776,7 +1787,7 @@ function renderQcSchedule(){
   document.getElementById('qcWeekTitle').textContent=
     `${mon.getDate()}/${mon.getMonth()+1} – ${fri.getDate()}/${fri.getMonth()+1}/${fri.getFullYear()}`;
   document.getElementById('qcWeekSub').textContent=
-    qcWeekOffset===0?'Τρέχουσα εβδομάδα':qcWeekOffset<0?`${Math.abs(qcWeekOffset)} εβδ. πριν`:`+${qcWeekOffset} εβδ.`;
+    qcWeekOffset===0?'+1 εβδ.':qcWeekOffset<0?`${Math.abs(qcWeekOffset)} εβδ. πριν`:`+${qcWeekOffset} εβδ.`;
 
   // Auto-suggest filters
   const suggestions=[];
@@ -1804,7 +1815,7 @@ function renderQcSchedule(){
       </div>`).join('');
   } else { sugBanner.style.display='none'; }
 
-  // Render day buttons
+  // Render day buttons — 10 days (2 weeks)
   const dayNames=['ΔΕΥ','ΤΡΙ','ΤΕΤ','ΠΕΜ','ΠΑΡ'];
   document.getElementById('qcDayBtns').innerHTML=dates.map((d,i)=>{
     const dk=dateKey(d);
@@ -1814,8 +1825,11 @@ function renderQcSchedule(){
     const allDone=visits.length>0&&visits.every(v=>v.status==='done');
     const hasPending=visits.some(v=>v.status!=='done');
     const dotClass=allDone?'has-done':hasPending?'has-visits':'';
-    return `<div class="qc-day-btn ${isSel?'active':''} ${isToday?'today':''} ${dotClass}" onclick="selectQcDay('${dk}')">
-      <div class="qcdb-name">${dayNames[i]}</div>
+    const weekLabel=i===0?`<div style="font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center;margin-bottom:4px;letter-spacing:0.06em;">ΕΒΔ ${qcWeekOffset===0?'1':''}${qcWeekOffset!==0?qcWeekOffset+':1':''}</div>`
+      :i===5?`<div style="font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center;margin-bottom:4px;letter-spacing:0.06em;">ΕΒΔ ${qcWeekOffset===0?'2':''}${qcWeekOffset!==0?qcWeekOffset+':2':''}</div>`:'';
+    return `${i===5?'<div style="width:100%;border-top:1px solid var(--border);margin:8px 0;"></div>':''}
+    <div class="qc-day-btn ${isSel?'active':''} ${isToday?'today':''} ${dotClass}" onclick="selectQcDay('${dk}')">
+      <div class="qcdb-name">${dayNames[i%5]}</div>
       <div class="qcdb-num">${d.getDate()}</div>
       <div class="qcdb-count">${visits.length?visits.length+'×':''}</div>
     </div>`;
