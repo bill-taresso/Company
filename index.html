@@ -613,6 +613,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <main>
         <div class="stitle" id="salesWelcome"></div>
         <div class="ssub" id="salesPeriod"></div>
+        <div id="installNotifPanel"></div>
         <div class="sales-stats" id="salesStats"></div>
         <div class="feed-title" id="salesFeedTitle" style="margin-top:20px"></div>
         <div id="salesFeed"></div>
@@ -648,9 +649,9 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
             <div class="op-desc">Αποστολή παραγγελίας στην τιμολόγηση</div>
             <div class="op-badge" style="border:1px solid rgba(201,168,76,0.35);color:var(--gold);background:rgba(201,168,76,0.07);">Παραγγελία</div>
           </div>
-          <div class="op-btn" onclick="openNewInstall()" style="grid-column:1/-1;border-color:rgba(90,170,122,0.3);">
+          <div class="op-btn" id="installOpBtn" onclick="openNewInstall(); markInstallSeen();" style="grid-column:1/-1;border-color:rgba(90,170,122,0.3);position:relative;">
             <div class="op-icon">🏪</div>
-            <div class="op-name">Άνοιγμα Νέου Πελάτη</div>
+            <div class="op-name">Άνοιγμα Νέου Πελάτη <span id="installBadge" style="display:none;background:#c05050;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:6px;vertical-align:middle;">!</span></div>
             <div class="op-desc">Εγκατάσταση · Εξοπλισμός · Διαφημιστικό υλικό</div>
             <div class="op-badge green">New Installation</div>
           </div>
@@ -3553,12 +3554,61 @@ function renderNotifBell(){
   bell.style.display='';
   bell.innerHTML=unseen.length>0?`🔔<span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;margin-left:2px;">${unseen.length}</span>`:'🔔';
   bell.style.color=unseen.length>0?'var(--gold)':'var(--text3)';
+  renderInstallNotifPanel(unseen);
+  renderInstallBadge(unseen);
 }
+
+function renderInstallNotifPanel(unseen){
+  const panel=document.getElementById('installNotifPanel');
+  if(!panel) return;
+  if(!unseen||unseen.length===0){panel.innerHTML='';return;}
+  const rows=unseen.slice(0,5).map(n=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);">
+      <span style="font-size:18px;">🏪</span>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${n.business||'Νέα Εγκατάσταση'}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${n.from}${n.area?' · '+n.area:''} · ${fmt(n.ts)}</div>
+      </div>
+    </div>`).join('');
+  panel.innerHTML=`
+    <div style="background:rgba(90,170,122,0.07);border:1px solid rgba(90,170,122,0.3);border-radius:10px;margin-bottom:16px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(90,170,122,0.2);">
+        <span style="font-size:12px;font-weight:700;color:#5aaa7a;">🔔 ${unseen.length} νέα${unseen.length===1?' εγκατάσταση':' εγκαταστάσεις'} που δεν έχ${unseen.length===1?'εις':'ετε'} δει</span>
+        <button onclick="markAllInstallSeen()" style="background:none;border:1px solid rgba(90,170,122,0.4);color:#5aaa7a;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer;">✓ Διάβασα</button>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+function renderInstallBadge(unseen){
+  const badge=document.getElementById('installBadge');
+  if(!badge) return;
+  if(unseen&&unseen.length>0){
+    badge.style.display='inline-flex';
+    badge.textContent='!';
+    const btn=document.getElementById('installOpBtn');
+    if(btn) btn.style.borderColor='rgba(192,80,80,0.5)';
+  } else {
+    badge.style.display='none';
+    const btn=document.getElementById('installOpBtn');
+    if(btn) btn.style.borderColor='rgba(90,170,122,0.3)';
+  }
+}
+
+window.markAllInstallSeen=()=>{
+  if(!currentUser) return;
+  const nameKey=currentUser.name.replace(/ /g,'_');
+  allNotifications.filter(n=>!n.seen?.[nameKey]).forEach(n=>{
+    db.ref(`taresso_notifications/${n.key}/seen/${nameKey}`).set(true);
+  });
+};
+window.markInstallSeen=()=>{
+  if(!currentUser||!NOTIF_RECIPIENTS.includes(currentUser.name)) return;
+  markAllInstallSeen();
+};
 window.openNotifications=()=>{
   if(!currentUser||!NOTIF_RECIPIENTS.includes(currentUser.name))return;
-  const nameKey=currentUser.name.replace(/ /g,'_');
-  const unseen=allNotifications.filter(n=>!n.seen?.[nameKey]);
-  unseen.forEach(n=>db.ref(`taresso_notifications/${n.key}/seen/${nameKey}`).set(true));
+  markAllInstallSeen();
   const all=allNotifications.sort((a,b)=>b.ts-a.ts).slice(0,15);
   if(!all.length){toast('Δεν υπάρχουν ειδοποιήσεις');return;}
   const list=all.map(n=>`• ${fmt(n.ts)} — ${n.from}: Νέα εγκατάσταση "${n.business}"${n.area?' ('+n.area+')':''}`).join('\n');
