@@ -615,6 +615,8 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div class="ssub" id="salesPeriod"></div>
         <div id="installNotifPanel"></div>
         <div class="sales-stats" id="salesStats"></div>
+        <div class="feed-title" id="dashInstallFeedTitle" style="display:none;margin-top:20px;"></div>
+        <div id="dashInstallFeed"></div>
         <div class="feed-title" id="salesFeedTitle" style="margin-top:20px"></div>
         <div id="salesFeed"></div>
       </main>
@@ -659,6 +661,8 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <!-- My orders feed -->
         <div class="feed-title" style="margin-top:8px;">Οι παραγγελίες μου</div>
         <div id="salesOrdersFeed"></div>
+        <div class="feed-title" style="margin-top:20px;">🏪 Πρόσφατες Εγκαταστάσεις</div>
+        <div id="logInstallFeed"></div>
       </main>
     </div>
     <div id="sales-history" style="display:none">
@@ -1119,6 +1123,14 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
   </div>
 </div>
 
+<!-- ══ INSTALL DETAIL MODAL ══ -->
+<div class="overlay" id="installDetailOverlay">
+  <div class="modal" style="max-width:600px;">
+    <button class="mclose" onclick="closeInstallDetail()">×</button>
+    <div id="installDetailContent"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ══ SALES MODAL ══ -->
@@ -1277,7 +1289,7 @@ prodRef.on('value',snap=>{
 });
 salesRef.on('value',snap=>{
   const raw=snap.val()||{};
-  allSalesLogs=Object.values(raw).sort((a,b)=>b.ts-a.ts);
+  allSalesLogs=Object.entries(raw).map(([k,v])=>({...v,_key:k})).sort((a,b)=>b.ts-a.ts);
   renderSalesAll();
 });
 invRef.on('value',snap=>{sharedInvItems=snap.val()||{};});
@@ -2533,6 +2545,12 @@ function renderSalesDash(){
   document.getElementById('salesFeedTitle').textContent=isManager?'Πρόσφατη δραστηριότητα ομάδας':'Πρόσφατες καταχωρήσεις μου';
   const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν καταχωρήσεις</div>`;
   document.getElementById('salesFeed').innerHTML=myLogs.length?myLogs.slice(0,6).map(buildSalesItem).join(''):empty;
+  // install feed on dashboard (managers)
+  if(NOTIF_RECIPIENTS.includes(currentUser?.name||'')){
+    const titleEl=document.getElementById('dashInstallFeedTitle');
+    if(titleEl){titleEl.style.display='';titleEl.textContent='🏪 Εγκαταστάσεις';}
+    renderInstallFeed('dashInstallFeed',5);
+  }
 }
 
 function renderLogStats(){
@@ -2544,6 +2562,7 @@ function renderLogStats(){
   document.getElementById('logStats').innerHTML=`
     <div class="feed-title">Τα νούμερά μου — μήνας / σύνολο</div>
     <div class="sales-stats">${statCards(n)}</div>`;
+  renderInstallFeed('logInstallFeed');
 }
 
 function renderTeam(){
@@ -2631,6 +2650,8 @@ function renderSalesAll(){
   renderSalesDash();
   if(document.getElementById('sales-history')&&document.getElementById('sales-history').style.display!=='none') renderSalesHistory();
   if(document.getElementById('sales-log')&&document.getElementById('sales-log').style.display!=='none') renderLogStats();
+  renderInstallFeed('logInstallFeed');
+  renderInstallFeed('dashInstallFeed',5);
   // always re-render team so data is ready when tab is opened
   renderTeam();
   if(document.getElementById('sales-team')&&document.getElementById('sales-team').style.display!=='none') renderTeam();
@@ -3440,29 +3461,127 @@ function enableQcDragDrop(){
 }
 
 
+
+// ── INSTALL FEED ──
+function buildInstallCard(e){
+  const u=uc(e.by||'');
+  const promo=e.promoItems?Object.entries(e.promoItems):'';
+  // find SKUs from INSTALL_ITEMS
+  const allItems=[...INSTALL_ITEMS.taresso,...INSTALL_ITEMS.yebuna];
+  const promoRows=promo?promo.map(([name,qty])=>{
+    const item=allItems.find(i=>i.name===name);
+    const sku=item?.sku||'';
+    return `<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);width:76px;flex-shrink:0;">${sku||'—'}</span>
+      <span style="font-size:12px;color:var(--text2);flex:1;">${name}</span>
+      <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text);font-weight:600;">${qty} τμχ</span>
+    </div>`;
+  }).join(''):'';
+  return `<div class="feed-item" style="cursor:pointer;align-items:flex-start;" ondblclick="openInstallDetail('${(e._key||e.ts||'').toString().replace(/'/g,"\\'")}')">
+    <div class="fav" style="background:${u.bg};color:${u.col};border:1px solid ${u.col}50;flex-shrink:0;">${(e.by||'?')[0]}</div>
+    <div class="fbody" style="flex:1;min-width:0;">
+      <div class="fhdr">
+        <span class="fuser">${e.by||''}</span>
+        <span style="font-size:11px;font-weight:600;color:#5aaa7a;">🏪 Νέα Εγκατάσταση</span>
+        <span class="ftime">${fmt(e.ts)}</span>
+      </div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;">${e.business||''}</div>
+      <div class="fdetail">${[e.firstName,e.lastName].filter(Boolean).join(' ')}${e.area?' · '+e.area:''}${e.zip?' '+e.zip:''}${e.address?', '+e.address:''}</div>
+      ${e.phone||e.email?`<div class="fdetail">${[e.phone,e.email].filter(Boolean).join(' · ')}</div>`:''}
+      ${e.machine?`<div class="fdetail">🔧 ${e.machine}${e.grinder1?' · '+e.grinder1:''}${e.grinder2?' · '+e.grinder2:''}${e.filter?' · Φίλτρο: '+e.filter:''}</div>`:''}
+      ${promoRows?`<div class="fbox" style="margin-top:6px;"><div class="fm">Διαφημιστικό Υλικό (${e.brand||''})</div>${promoRows}</div>`:''}
+      ${e.notes?`<div class="fbox"><div class="fm">Σημειώσεις</div>${e.notes}</div>`:''}
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;font-family:'DM Mono',monospace;">⟳ Διπλό κλικ για λεπτομέρειες</div>
+    </div>
+  </div>`;
+}
+
+let _installLogsCache=[];
+function getInstallLogs(){
+  // allSalesLogs is the live array from Firebase listener
+  return allSalesLogs.filter(e=>e.subtype==='install').sort((a,b)=>b.ts-a.ts);
+}
+
+function renderInstallFeed(containerId, limit){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  const logs=getInstallLogs();
+  const list=limit?logs.slice(0,limit):logs;
+  const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν εγκαταστάσεις</div>`;
+  el.innerHTML=list.length?list.map(buildInstallCard).join(''):empty;
+}
+
+window.openInstallDetail=(keyOrTs)=>{
+  const logs=getInstallLogs();
+  const e=logs.find(x=>(x._key||String(x.ts))===String(keyOrTs))||logs.find(x=>String(x.ts)===String(keyOrTs));
+  if(!e){toast('Δεν βρέθηκε η εγκατάσταση');return;}
+  const allItems=[...INSTALL_ITEMS.taresso,...INSTALL_ITEMS.yebuna];
+  const promo=e.promoItems?Object.entries(e.promoItems):'';
+  const promoRows=promo?promo.map(([name,qty])=>{
+    const item=allItems.find(i=>i.name===name);
+    const sku=item?.sku||'';
+    return `<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);width:80px;flex-shrink:0;background:var(--s2);padding:2px 6px;border-radius:4px;border:1px solid var(--border);">${sku||'—'}</span>
+      <span style="font-size:13px;color:var(--text);flex:1;">${name}</span>
+      <span style="font-size:14px;font-family:'DM Mono',monospace;color:var(--gold);font-weight:700;">${qty} τμχ</span>
+    </div>`;
+  }).join(''):'';
+  document.getElementById('installDetailContent').innerHTML=`
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
+      <div class="mtitle">🏪 ${e.business||''}</div>
+    </div>
+    <div class="msub">${e.by||''} · ${fmt(e.ts)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      ${e.firstName||e.lastName?`<div class="fbox"><div class="fm">Επωνυμία</div>${[e.firstName,e.lastName].filter(Boolean).join(' ')}</div>`:''}
+      ${e.area?`<div class="fbox"><div class="fm">Περιοχή</div>${e.area}${e.zip?' '+e.zip:''}</div>`:''}
+      ${e.address?`<div class="fbox" style="grid-column:1/-1"><div class="fm">Διεύθυνση</div>${e.address}</div>`:''}
+      ${e.phone?`<div class="fbox"><div class="fm">Τηλέφωνο</div>${e.phone}</div>`:''}
+      ${e.email?`<div class="fbox"><div class="fm">Email</div>${e.email}</div>`:''}
+    </div>
+    <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Εξοπλισμός</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      ${e.date?`<div class="fbox"><div class="fm">Ημ. Εγκατάστασης</div>${e.date}</div>`:''}
+      ${e.machine?`<div class="fbox" style="grid-column:1/-1"><div class="fm">Μηχανή</div>${e.machine}</div>`:''}
+      ${e.grinder1?`<div class="fbox"><div class="fm">Μύλος</div>${e.grinder1}</div>`:''}
+      ${e.grinder2?`<div class="fbox"><div class="fm">2ος Μύλος</div>${e.grinder2}</div>`:''}
+      ${e.filter?`<div class="fbox"><div class="fm">Φίλτρο</div>${e.filter}</div>`:''}
+    </div>
+    ${promoRows?`
+    <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Διαφημιστικό Υλικό — ${(e.brand||'').toUpperCase()}</div>
+    <div style="margin-bottom:16px;">${promoRows}</div>`:''}
+    ${e.notes?`<div class="fbox"><div class="fm">Σημειώσεις</div>${e.notes}</div>`:''}
+    <div class="mactions"><button class="btng" onclick="closeInstallDetail()">Κλείσιμο</button></div>`;
+  document.getElementById('installDetailOverlay').classList.add('open');
+};
+window.closeInstallDetail=()=>document.getElementById('installDetailOverlay').classList.remove('open');
+document.addEventListener('DOMContentLoaded',()=>{
+  const ido=document.getElementById('installDetailOverlay');
+  if(ido) ido.addEventListener('click',e=>{if(e.target===ido) ido.classList.remove('open');});
+});
+
 // ── NEW INSTALLATION ──
 const INSTALL_ITEMS = {
   taresso: [
-    {id:'trs_esp_cups',    name:'Taresso Espresso Cups',            unit:'τμχ'},
-    {id:'trs_cap_cups',    name:'Taresso Cappuccino Cups',           unit:'τμχ'},
-    {id:'trs_lat_cups',    name:'Taresso Latte Cups',                unit:'τμχ'},
-    {id:'trs_fre_esp',     name:'Taresso Freddo Espresso Ποτήρια',  unit:'τμχ'},
-    {id:'trs_fre_cap',     name:'Taresso Freddo Cappuccino Ποτήρια',unit:'τμχ'},
-    {id:'trs_sign_round',  name:'Ταμπέλα Εξωτερική Στρογγυλή',     unit:'τμχ'},
-    {id:'trs_cement_stand',name:'Τσιμεντένιο Σταντ Taresso',        unit:'τμχ'},
-    {id:'trs_light',       name:'Φωτιστικό Taresso',                unit:'τμχ'},
-    {id:'trs_flag',        name:'Σημαιόπανο',                       unit:'τμχ'},
-    {id:'trs_apron',       name:'Ποδιές Taresso',                   unit:'τμχ'},
+    {id:'trs_esp_cups',    sku:'',    name:'Taresso Espresso Cups',            unit:'τμχ'},
+    {id:'trs_cap_cups',    sku:'',    name:'Taresso Cappuccino Cups',           unit:'τμχ'},
+    {id:'trs_lat_cups',    sku:'',    name:'Taresso Latte Cups',                unit:'τμχ'},
+    {id:'trs_fre_esp',     sku:'',    name:'Taresso Freddo Espresso Ποτήρια',  unit:'τμχ'},
+    {id:'trs_fre_cap',     sku:'',    name:'Taresso Freddo Cappuccino Ποτήρια',unit:'τμχ'},
+    {id:'trs_sign_round',  sku:'',    name:'Ταμπέλα Εξωτερική Στρογγυλή',     unit:'τμχ'},
+    {id:'trs_cement_stand',sku:'',    name:'Τσιμεντένιο Σταντ Taresso',        unit:'τμχ'},
+    {id:'trs_light',       sku:'',    name:'Φωτιστικό Taresso',                unit:'τμχ'},
+    {id:'trs_flag',        sku:'',    name:'Σημαιόπανο',                       unit:'τμχ'},
+    {id:'trs_apron',       sku:'',    name:'Ποδιές Taresso',                   unit:'τμχ'},
   ],
   yebuna: [
-    {id:'yeb_esp_cups',   name:'Yebuna Espresso Cups',              unit:'τμχ'},
-    {id:'yeb_cap_cups',   name:'Yebuna Cappuccino Cups',             unit:'τμχ'},
-    {id:'yeb_lat_cups',   name:'Yebuna Latte Cups',                  unit:'τμχ'},
-    {id:'yeb_fre_esp',    name:'Yebuna Freddo Espresso Ποτήρια',    unit:'τμχ'},
-    {id:'yeb_fre_cap',    name:'Yebuna Freddo Cappuccino Ποτήρια',  unit:'τμχ'},
-    {id:'yeb_sign_round', name:'Ταμπέλα Εξωτερική Στρογγυλή',      unit:'τμχ'},
-    {id:'yeb_flag',       name:'Σημαιόπανο',                        unit:'τμχ'},
-    {id:'yeb_apron',      name:'Ποδιές Yebuna',                     unit:'τμχ'},
+    {id:'yeb_esp_cups',    sku:'',    name:'Yebuna Espresso Cups',             unit:'τμχ'},
+    {id:'yeb_cap_cups',    sku:'',    name:'Yebuna Cappuccino Cups',            unit:'τμχ'},
+    {id:'yeb_lat_cups',    sku:'',    name:'Yebuna Latte Cups',                 unit:'τμχ'},
+    {id:'yeb_fre_esp',     sku:'',    name:'Yebuna Freddo Espresso Ποτήρια',   unit:'τμχ'},
+    {id:'yeb_fre_cap',     sku:'',    name:'Yebuna Freddo Cappuccino Ποτήρια', unit:'τμχ'},
+    {id:'yeb_sign_round',  sku:'',    name:'Ταμπέλα Εξωτερική Στρογγυλή',     unit:'τμχ'},
+    {id:'yeb_flag',        sku:'',    name:'Σημαιόπανο',                       unit:'τμχ'},
+    {id:'yeb_apron',       sku:'',    name:'Ποδιές Yebuna',                    unit:'τμχ'},
   ],
 };
 let activeBrandTab='taresso';
@@ -3471,6 +3590,7 @@ function renderInstallItems(brand){
   const cid=brand==='taresso'?'taressoItems':'yebunaItems';
   document.getElementById(cid).innerHTML=items.map(item=>`
     <div class="inst-item">
+      <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);width:80px;flex-shrink:0;">${item.sku||'—'}</span>
       <span class="inst-item-name">${item.name}</span>
       <input class="inst-item-qty" type="number" id="inst_${item.id}" min="0" placeholder="0">
       <span class="inst-item-unit">${item.unit}</span>
