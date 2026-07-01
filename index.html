@@ -2265,6 +2265,7 @@ window.openSales=()=>{
   document.getElementById('salesSection').style.display='block';
   setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}),0);
   salesTab('dash');
+  renderInstallFeed('dashInstallFeed',5);
 };
 
 // ── PROD TABS ──
@@ -2428,7 +2429,7 @@ window.salesTab=(tab)=>{
   });
   if(tab==='history') renderSalesHistory();
   if(tab==='dash') renderSalesDash();
-  if(tab==='log'){renderLogStats();renderSalesOrders();}
+  if(tab==='log'){renderLogStats();renderSalesOrders();renderInstallFeed('logInstallFeed');}
   if(tab==='team') renderTeam();
 
 };
@@ -2650,8 +2651,10 @@ function renderSalesAll(){
   renderSalesDash();
   if(document.getElementById('sales-history')&&document.getElementById('sales-history').style.display!=='none') renderSalesHistory();
   if(document.getElementById('sales-log')&&document.getElementById('sales-log').style.display!=='none') renderLogStats();
-  renderInstallFeed('logInstallFeed');
-  renderInstallFeed('dashInstallFeed',5);
+  if(document.getElementById('salesSection')?.style.display!=='none'){
+    renderInstallFeed('logInstallFeed');
+    renderInstallFeed('dashInstallFeed',5);
+  }
   // always re-render team so data is ready when tab is opened
   renderTeam();
   if(document.getElementById('sales-team')&&document.getElementById('sales-team').style.display!=='none') renderTeam();
@@ -3477,7 +3480,8 @@ function buildInstallCard(e){
       <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text);font-weight:600;">${qty} τμχ</span>
     </div>`;
   }).join(''):'';
-  return `<div class="feed-item" style="cursor:pointer;align-items:flex-start;" ondblclick="openInstallDetail('${(e._key||e.ts||'').toString().replace(/'/g,"\\'")}')">
+  const key=(e._key||String(e.ts||'')).replace(/'/g,"\\'");
+  return `<div class="feed-item" style="align-items:flex-start;">
     <div class="fav" style="background:${u.bg};color:${u.col};border:1px solid ${u.col}50;flex-shrink:0;">${(e.by||'?')[0]}</div>
     <div class="fbody" style="flex:1;min-width:0;">
       <div class="fhdr">
@@ -3491,7 +3495,7 @@ function buildInstallCard(e){
       ${e.machine?`<div class="fdetail">🔧 ${e.machine}${e.grinder1?' · '+e.grinder1:''}${e.grinder2?' · '+e.grinder2:''}${e.filter?' · Φίλτρο: '+e.filter:''}</div>`:''}
       ${promoRows?`<div class="fbox" style="margin-top:6px;"><div class="fm">Διαφημιστικό Υλικό (${e.brand||''})</div>${promoRows}</div>`:''}
       ${e.notes?`<div class="fbox"><div class="fm">Σημειώσεις</div>${e.notes}</div>`:''}
-      <div style="font-size:10px;color:var(--text3);margin-top:6px;font-family:'DM Mono',monospace;">⟳ Διπλό κλικ για λεπτομέρειες</div>
+      <button onclick="openInstallDetailAndMarkSeen('${key}')" style="margin-top:8px;background:var(--s2);border:1px solid var(--border2);color:var(--text2);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;">🔍 Λεπτομέρειες</button>
     </div>
   </div>`;
 }
@@ -3554,6 +3558,16 @@ window.openInstallDetail=(keyOrTs)=>{
   document.getElementById('installDetailOverlay').classList.add('open');
 };
 window.closeInstallDetail=()=>document.getElementById('installDetailOverlay').classList.remove('open');
+window.openInstallDetailAndMarkSeen=(keyOrTs)=>{
+  openInstallDetail(keyOrTs);
+  // Mark all unseen as seen only after user explicitly opens a detail
+  if(currentUser&&NOTIF_RECIPIENTS.includes(currentUser.name)){
+    const nameKey=currentUser.name.replace(/ /g,'_');
+    allNotifications.filter(n=>!n.seen?.[nameKey]).forEach(n=>{
+      db.ref(`taresso_notifications/${n.key}/seen/${nameKey}`).set(true);
+    });
+  }
+};
 document.addEventListener('DOMContentLoaded',()=>{
   const ido=document.getElementById('installDetailOverlay');
   if(ido) ido.addEventListener('click',e=>{if(e.target===ido) ido.classList.remove('open');});
