@@ -838,7 +838,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <button class="back-btn" onclick="qcChangeWeek(1)">Επόμ. →</button>
     </div>
     <!-- Day buttons -->
-    <div style="display:flex;gap:6px;padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border);flex-wrap:wrap;" id="qcDayBtns"></div>
+    <div style="display:flex;flex-direction:column;gap:0;padding:10px 14px;background:var(--s1);border-bottom:1px solid var(--border);" id="qcDayBtns"></div>
     <!-- Auto-suggest banner -->
     <div id="qcSuggestBanner" style="display:none;margin:12px 16px 0;background:rgba(106,168,208,0.08);border:1px solid rgba(106,168,208,0.3);border-radius:10px;padding:12px 14px;">
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--blue);font-weight:700;margin-bottom:8px;">💧 ΦΙΛΤΡΑ ΠΟΥ ΧΡΕΙΑΖΟΝΤΑΙ ΠΡΟΓΡΑΜΜΑΤΙΣΜΟ</div>
@@ -1826,7 +1826,7 @@ function renderQcSchedule(){
 
   // Render day buttons — 10 days (2 weeks)
   const dayNames=['ΔΕΥ','ΤΡΙ','ΤΕΤ','ΠΕΜ','ΠΑΡ'];
-  document.getElementById('qcDayBtns').innerHTML=dates.map((d,i)=>{
+  const week1=dates.slice(0,5).map((d,i)=>{
     const dk=dateKey(d);
     const isToday=dk===todayKey;
     const isSel=dk===qcSelectedDay;
@@ -1834,15 +1834,30 @@ function renderQcSchedule(){
     const allDone=visits.length>0&&visits.every(v=>v.status==='done');
     const hasPending=visits.some(v=>v.status!=='done');
     const dotClass=allDone?'has-done':hasPending?'has-visits':'';
-    const weekLabel=i===0?`<div style="font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center;margin-bottom:4px;letter-spacing:0.06em;">ΕΒΔ ${qcWeekOffset===0?'1':''}${qcWeekOffset!==0?qcWeekOffset+':1':''}</div>`
-      :i===5?`<div style="font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center;margin-bottom:4px;letter-spacing:0.06em;">ΕΒΔ ${qcWeekOffset===0?'2':''}${qcWeekOffset!==0?qcWeekOffset+':2':''}</div>`:'';
-    return `${i===5?'<div style="width:100%;border-top:1px solid var(--border);margin:8px 0;"></div>':''}
-    <div class="qc-day-btn ${isSel?'active':''} ${isToday?'today':''} ${dotClass}" onclick="selectQcDay('${dk}')">
-      <div class="qcdb-name">${dayNames[i%5]}</div>
+    return `<div class="qc-day-btn ${isSel?'active':''} ${isToday?'today':''} ${dotClass}" onclick="selectQcDay('${dk}')">
+      <div class="qcdb-name">${dayNames[i]}</div>
       <div class="qcdb-num">${d.getDate()}</div>
       <div class="qcdb-count">${visits.length?visits.length+'×':''}</div>
     </div>`;
   }).join('');
+  const week2=dates.slice(5,10).map((d,i)=>{
+    const dk=dateKey(d);
+    const isToday=dk===todayKey;
+    const isSel=dk===qcSelectedDay;
+    const visits=Object.values(allQcSchedule).filter(v=>v.date===dk&&(isManager||v.barista===currentUser?.name));
+    const allDone=visits.length>0&&visits.every(v=>v.status==='done');
+    const hasPending=visits.some(v=>v.status!=='done');
+    const dotClass=allDone?'has-done':hasPending?'has-visits':'';
+    return `<div class="qc-day-btn ${isSel?'active':''} ${isToday?'today':''} ${dotClass}" onclick="selectQcDay('${dk}')">
+      <div class="qcdb-name">${dayNames[i]}</div>
+      <div class="qcdb-num">${d.getDate()}</div>
+      <div class="qcdb-count">${visits.length?visits.length+'×':''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('qcDayBtns').innerHTML=`
+    <div style="display:flex;gap:6px;width:100%;">${week1}</div>
+    <div style="width:100%;border-top:1px solid var(--border);margin:4px 0;"></div>
+    <div style="display:flex;gap:6px;width:100%;">${week2}</div>`;
 
   // Render selected day visits
   renderQcDayVisits(isManager);
@@ -3213,6 +3228,7 @@ function renderQcClients(){
   const search=(document.getElementById('qcClientSearch')?.value||'').toLowerCase();
   const sorted=Object.entries(allClients)
     .filter(([,c])=>!search||c.name.toLowerCase().includes(search)||(c.area||'').toLowerCase().includes(search))
+    .filter(([ck])=>!qcRegionFilter||(allQcGrades[ck]?.region||'')=== qcRegionFilter)
     .sort(([,a],[,b])=>a.name.localeCompare(b.name,'el'));
   let html='';
   sorted.forEach(([ck,cl])=>{
