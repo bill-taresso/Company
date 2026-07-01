@@ -443,6 +443,13 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
 .scan-btn:hover{background:rgba(201,168,76,0.2);border-color:var(--gold);}
 .scan-again{background:var(--s2);border:1px solid var(--border);color:var(--text2);padding:9px 14px;border-radius:7px;font-size:13px;cursor:pointer;transition:all 0.15s;font-family:'Syne',sans-serif;}
 .scan-again:hover{border-color:var(--text2);color:var(--text);}
+/* ── INSTALL ITEM ROWS ── */
+.inst-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--s2);border:1px solid var(--border);border-radius:7px;}
+.inst-item-name{font-size:13px;color:var(--text);flex:1;}
+.inst-item-qty{width:72px;background:var(--s3);border:1px solid var(--border2);color:var(--text);padding:6px;border-radius:5px;font-family:'DM Mono',monospace;font-size:14px;text-align:center;outline:none;}
+.inst-item-qty:focus{border-color:var(--gold);}
+.inst-item-unit{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;width:28px;}
+
 .toast{position:fixed;bottom:20px;right:20px;background:var(--s1);border:1px solid var(--green);border-radius:7px;padding:10px 16px;font-size:12px;color:var(--green);z-index:500;transform:translateY(12px);opacity:0;transition:all 0.28s ease;font-family:'DM Mono',monospace;max-width:260px;}
 .toast.show{transform:translateY(0);opacity:1;}
 </style>
@@ -513,6 +520,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
     <div class="hlogo"><img src="data:image/png;base64,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" alt="Taresso" style="height:32px;width:auto;filter:brightness(0) invert(1);opacity:0.9;vertical-align:middle;"> <span>COMPANY OPS</span></div>
     <div class="hright">
       <div class="livedot">LIVE</div>
+      <button id="notifBell" onclick="openNotifications()" style="display:none;background:none;border:none;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px;"></button>
       <div class="hav" id="hAv"></div>
       <div>
         <div class="hname" id="hName"></div>
@@ -640,6 +648,12 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
             <div class="op-desc">Αποστολή παραγγελίας στην τιμολόγηση</div>
             <div class="op-badge" style="border:1px solid rgba(201,168,76,0.35);color:var(--gold);background:rgba(201,168,76,0.07);">Παραγγελία</div>
           </div>
+          <div class="op-btn" onclick="openNewInstall()" style="grid-column:1/-1;border-color:rgba(90,170,122,0.3);">
+            <div class="op-icon">🏪</div>
+            <div class="op-name">Άνοιγμα Νέου Πελάτη</div>
+            <div class="op-desc">Εγκατάσταση · Εξοπλισμός · Διαφημιστικό υλικό</div>
+            <div class="op-badge green">New Installation</div>
+          </div>
         </div>
         <!-- My orders feed -->
         <div class="feed-title" style="margin-top:8px;">Οι παραγγελίες μου</div>
@@ -656,6 +670,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
           <div class="fchip" onclick="setSalesFilter('visit',this)">🤝 Επισκέψεις</div>
           <div class="fchip" onclick="setSalesFilter('sample',this)">☕ Δειγματισμοί</div>
           <div class="fchip" onclick="setSalesFilter('deal',this)">✅ Deals</div>
+          <div class="fchip" onclick="setSalesFilter('install',this)">🏪 Εγκαταστάσεις</div>
         </div>
         <div id="salesHistFeed"></div>
       </main>
@@ -1028,6 +1043,81 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
   </div>
 </div>
 
+<!-- ══ NEW INSTALLATION MODAL ══ -->
+<div class="overlay" id="installOverlay" style="align-items:flex-start;">
+  <div class="modal" style="max-width:640px;margin:16px auto;">
+    <button class="mclose" onclick="closeNewInstall()">×</button>
+    <div class="mtitle">🏪 Άνοιγμα Νέου Πελάτη</div>
+    <div class="msub">Εγκατάσταση εξοπλισμού & διαφημιστικό υλικό</div>
+    <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Στοιχεία Επιχείρησης</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="field" style="grid-column:1/-1"><label>Τίτλος Επιχείρησης</label><input type="text" id="instBusiness" placeholder="π.χ. Καφετέρια Αθήναιον"></div>
+      <div class="field"><label>Όνομα</label><input type="text" id="instFirst" placeholder="Όνομα"></div>
+      <div class="field"><label>Επώνυμο</label><input type="text" id="instLast" placeholder="Επώνυμο"></div>
+      <div class="field"><label>Περιοχή</label><input type="text" id="instArea" placeholder="π.χ. Κηφισιά"></div>
+      <div class="field"><label>Τ.Κ.</label><input type="text" id="instZip" placeholder="12345"></div>
+      <div class="field" style="grid-column:1/-1"><label>Διεύθυνση</label><input type="text" id="instAddress" placeholder="Οδός, Αριθμός"></div>
+      <div class="field"><label>Τηλέφωνο</label><input type="tel" id="instPhone" placeholder="69XXXXXXXX"></div>
+      <div class="field"><label>Email</label><input type="email" id="instEmail" placeholder="email@example.com"></div>
+    </div>
+    <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Εξοπλισμός & Εγκατάσταση</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="field"><label>Επιθυμητή Ημ. Εγκατάστασης</label><input type="date" id="instDate"></div>
+      <div class="field" style="grid-column:1/-1"><label>Μηχανή</label>
+        <select id="instMachine">
+          <option value="">— Επιλέξτε —</option>
+          <option>Nuova Simonelli Appia Life XT 2 Group</option>
+          <option>Nuova Simonelli Appia Life XT 3 Group</option>
+          <option>Nuova Simonelli Aurelia Wave 3 Group</option>
+          <option>Victoria Arduino Adonis 2 Group</option>
+          <option>Victoria Arduino Adonis 3 Group</option>
+          <option>Victoria Arduino Eagle One 2 Group</option>
+          <option>Victoria Arduino Eagle One 3 Group</option>
+          <option>Victoria Arduino Tempo 2 Group</option>
+          <option>Victoria Arduino Tempo 3 Group</option>
+          <option>Victoria Arduino Maverick Gravitech 3 Group</option>
+          <option value="other">Άλλο (ελεύθερο πεδίο)</option>
+        </select>
+        <input type="text" id="instMachineOther" placeholder="Περιγράψτε τη μηχανή..." style="margin-top:6px;display:none;">
+      </div>
+      <div class="field"><label>Μύλος</label>
+        <select id="instGrinder1">
+          <option value="">— Επιλέξτε —</option>
+          <option>Ceado E37T</option><option>Ceado E37SL</option><option>Ceado E37S</option><option>Ceado E37R</option>
+          <option>Anfim Alba</option><option>Anfim Pratica</option><option>Anfim Luna</option>
+          <option>Mahlkonig E80S</option><option>Mahlkonig E65S</option><option>Mahlkonig E80GBW</option><option>Mahlkonig E65GBW</option>
+        </select>
+      </div>
+      <div class="field"><label>2ος Μύλος</label>
+        <select id="instGrinder2">
+          <option value="">— Κανένας —</option>
+          <option>Ceado E37T</option><option>Ceado E37SL</option><option>Ceado E37S</option><option>Ceado E37R</option>
+          <option>Anfim Alba</option><option>Anfim Pratica</option><option>Anfim Luna</option>
+          <option>Mahlkonig E80S</option><option>Mahlkonig E65S</option><option>Mahlkonig E80GBW</option><option>Mahlkonig E65GBW</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1"><label>Φίλτρο</label>
+        <select id="instFilter">
+          <option value="">— Επιλέξτε —</option>
+          <option>Large</option><option>X Large</option><option>2X Large</option><option>Αντίστροφη Όσμωση</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Διαφημιστικό Υλικό</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <div class="fchip" id="brandTabTaresso" onclick="switchBrandTab('taresso')" style="cursor:pointer;">Taresso</div>
+      <div class="fchip" id="brandTabYebuna"  onclick="switchBrandTab('yebuna')"  style="cursor:pointer;">Yebuna</div>
+    </div>
+    <div id="brandItemsTaresso" style="display:none;"><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;" id="taressoItems"></div></div>
+    <div id="brandItemsYebuna"  style="display:none;"><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;" id="yebunaItems"></div></div>
+    <div class="field"><label>Σημειώσεις</label><textarea id="instNotes" placeholder="Επιπλέον παρατηρήσεις..."></textarea></div>
+    <div class="mactions">
+      <button class="btng" onclick="closeNewInstall()">Ακύρωση</button>
+      <button class="btn" onclick="saveNewInstall()">Αποθήκευση & Κοινοποίηση</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ══ SALES MODAL ══ -->
@@ -1097,6 +1187,7 @@ const USERS = [
   // QC
   {name:'Διονύσης',             role:'qc_mgr',       dept:'qc',       col:'#e8cb7a', bg:'rgba(232,203,122,0.18)'},
   {name:'Γιάννης',              role:'qc',           dept:'qc',       col:'#80c8a0', bg:'rgba(128,200,160,0.18)'},
+  {name:'Γιώργος QC',           role:'qc',           dept:'qc',       col:'#6aa8d0', bg:'rgba(106,168,208,0.18)'},
   // Service
 ];
 const ROLE_LABELS = {
@@ -1222,6 +1313,7 @@ const PINS = {
   'Φωτεινή': '6293',
   'Διονύσης':'5147',
   'Γιάννης': '9036',
+  'Γιώργος QC': '3333',
   'Ανδρέας': '2584',
   'Σωτήρης': '7461',
   // Sales
@@ -1234,7 +1326,7 @@ const PINS = {
   'Αλέξανδρος Στεργιόπουλος': '2759',
 };
 // PIN users (desktop ή admin — χωρίς Face ID)
-const PIN_USERS = new Set(['Βασίλης','Γιώργος','Πέπη','Δήμητρα','Φωτεινή','Διονύσης','Γιάννης','Ανδρέας','Σωτήρης','Λευτέρης Γούναρης','Βαγγέλης Σολωμός','Παναγιώτης Τσινάκης','Νίκος Φωτόπουλος','Κωσταντίνος Πασλής','Παναγιώτης Γιαζιτζής','Αλέξανδρος Στεργιόπουλος']);
+const PIN_USERS = new Set(['Βασίλης','Γιώργος','Πέπη','Δήμητρα','Φωτεινή','Διονύσης','Γιάννης','Γιώργος QC','Ανδρέας','Σωτήρης','Λευτέρης Γούναρης','Βαγγέλης Σολωμός','Παναγιώτης Τσινάκης','Νίκος Φωτόπουλος','Κωσταντίνος Πασλής','Παναγιώτης Γιαζιτζής','Αλέξανδρος Στεργιόπουλος']);
 
 // ── WEBAUTHN helpers ──
 function rpId(){ return location.hostname === 'localhost' ? 'localhost' : location.hostname; }
@@ -1474,6 +1566,7 @@ function autoLogin(name){
   av.textContent=u.name[0]; av.style.cssText=`background:${u.bg};color:${u.col};border:1px solid ${u.col}60;`;
   document.getElementById('hName').textContent=u.name;
   document.getElementById('hRole').textContent=ROLE_LABELS[u.role]||u.role;
+  if(typeof renderNotifBell==='function') renderNotifBell();
   buildHub();
 }
 
@@ -2514,11 +2607,21 @@ function renderSalesHistory(){
 }
 function buildSalesItem(e){
   const u=uc(e.by);
-  const stmap={visit:'🤝 Επίσκεψη',sample:'☕ Δειγματισμός',deal:'✅ Deal'};
-  const stcol={visit:'var(--blue)',sample:'var(--green)',deal:'var(--gold)'};
-  let detail=`<div class="fdetail">${e.client}${e.area?' · '+e.area:''}</div>`;
-  if(e.subtype==='deal'&&e.dealValue)detail+=`<div class="fdetail" style="color:var(--gold)">€${e.dealValue.toLocaleString('el-GR')}${e.dealProduct?' · '+e.dealProduct:''}</div>`;
-  if(e.notes)detail+=`<div class="fbox"><div class="fm">Σημειώσεις</div>${e.notes}</div>`;
+  const stmap={visit:'🤝 Επίσκεψη',sample:'☕ Δειγματισμός',deal:'✅ Deal',install:'🏪 Νέα Εγκατάσταση'};
+  const stcol={visit:'var(--blue)',sample:'var(--green)',deal:'var(--gold)',install:'#5aaa7a'};
+  let detail='';
+  if(e.subtype==='install'){
+    const promo=e.promoItems?Object.entries(e.promoItems).map(([k,v])=>`${k}: ${v} τμχ`).join(' · '):'';
+    detail=`<div class="fdetail"><strong style="color:var(--text)">${e.business||''}</strong>${e.area?' · '+e.area:''}</div>`;
+    if(e.address||e.phone) detail+=`<div class="fdetail">${[e.address,e.phone,e.email].filter(Boolean).join(' · ')}</div>`;
+    if(e.machine) detail+=`<div class="fdetail">🔧 ${e.machine}${e.grinder1?' · '+e.grinder1:''}${e.grinder2?' · '+e.grinder2:''}${e.filter?' · Φίλτρο: '+e.filter:''}</div>`;
+    if(promo) detail+=`<div class="fbox"><div class="fm">Διαφημιστικό (${e.brand||''})</div>${promo}</div>`;
+    if(e.notes) detail+=`<div class="fbox"><div class="fm">Σημειώσεις</div>${e.notes}</div>`;
+  } else {
+    detail=`<div class="fdetail">${e.client||''}${e.area?' · '+e.area:''}</div>`;
+    if(e.subtype==='deal'&&e.dealValue) detail+=`<div class="fdetail" style="color:var(--gold)">€${e.dealValue.toLocaleString('el-GR')}${e.dealProduct?' · '+e.dealProduct:''}</div>`;
+    if(e.notes) detail+=`<div class="fbox"><div class="fm">Σημειώσεις</div>${e.notes}</div>`;
+  }
   return `<div class="feed-item"><div class="fav" style="background:${u.bg};color:${u.col};border:1px solid ${u.col}50">${e.by[0]}</div>
     <div class="fbody"><div class="fhdr"><span class="fuser">${e.by}</span><span style="font-size:11px;font-weight:600;color:${stcol[e.subtype]||'var(--text2)'}">${stmap[e.subtype]||e.subtype}</span><span class="ftime">${fmt(e.ts)}</span></div>${detail}</div></div>`;
 }
@@ -3334,6 +3437,133 @@ function enableQcDragDrop(){
     }
   });
 }
+
+
+// ── NEW INSTALLATION ──
+const INSTALL_ITEMS = {
+  taresso: [
+    {id:'trs_esp_cups',    name:'Taresso Espresso Cups',            unit:'τμχ'},
+    {id:'trs_cap_cups',    name:'Taresso Cappuccino Cups',           unit:'τμχ'},
+    {id:'trs_lat_cups',    name:'Taresso Latte Cups',                unit:'τμχ'},
+    {id:'trs_fre_esp',     name:'Taresso Freddo Espresso Ποτήρια',  unit:'τμχ'},
+    {id:'trs_fre_cap',     name:'Taresso Freddo Cappuccino Ποτήρια',unit:'τμχ'},
+    {id:'trs_sign_round',  name:'Ταμπέλα Εξωτερική Στρογγυλή',     unit:'τμχ'},
+    {id:'trs_cement_stand',name:'Τσιμεντένιο Σταντ Taresso',        unit:'τμχ'},
+    {id:'trs_light',       name:'Φωτιστικό Taresso',                unit:'τμχ'},
+    {id:'trs_flag',        name:'Σημαιόπανο',                       unit:'τμχ'},
+    {id:'trs_apron',       name:'Ποδιές Taresso',                   unit:'τμχ'},
+  ],
+  yebuna: [
+    {id:'yeb_esp_cups',   name:'Yebuna Espresso Cups',              unit:'τμχ'},
+    {id:'yeb_cap_cups',   name:'Yebuna Cappuccino Cups',             unit:'τμχ'},
+    {id:'yeb_lat_cups',   name:'Yebuna Latte Cups',                  unit:'τμχ'},
+    {id:'yeb_fre_esp',    name:'Yebuna Freddo Espresso Ποτήρια',    unit:'τμχ'},
+    {id:'yeb_fre_cap',    name:'Yebuna Freddo Cappuccino Ποτήρια',  unit:'τμχ'},
+    {id:'yeb_sign_round', name:'Ταμπέλα Εξωτερική Στρογγυλή',      unit:'τμχ'},
+    {id:'yeb_flag',       name:'Σημαιόπανο',                        unit:'τμχ'},
+    {id:'yeb_apron',      name:'Ποδιές Yebuna',                     unit:'τμχ'},
+  ],
+};
+let activeBrandTab='taresso';
+function renderInstallItems(brand){
+  const items=INSTALL_ITEMS[brand];
+  const cid=brand==='taresso'?'taressoItems':'yebunaItems';
+  document.getElementById(cid).innerHTML=items.map(item=>`
+    <div class="inst-item">
+      <span class="inst-item-name">${item.name}</span>
+      <input class="inst-item-qty" type="number" id="inst_${item.id}" min="0" placeholder="0">
+      <span class="inst-item-unit">${item.unit}</span>
+    </div>`).join('');
+}
+window.switchBrandTab=(brand)=>{
+  activeBrandTab=brand;
+  ['taresso','yebuna'].forEach(b=>{
+    document.getElementById(b==='taresso'?'brandTabTaresso':'brandTabYebuna').classList.toggle('active',b===brand);
+    document.getElementById(b==='taresso'?'brandItemsTaresso':'brandItemsYebuna').style.display=b===brand?'':'none';
+  });
+  renderInstallItems(brand);
+};
+window.openNewInstall=()=>{
+  ['instBusiness','instFirst','instLast','instArea','instZip','instAddress','instPhone','instEmail','instNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('instDate').value=new Date().toISOString().split('T')[0];
+  ['instMachine','instGrinder1','instGrinder2','instFilter'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('instMachineOther').style.display='none';
+  switchBrandTab('taresso');
+  document.getElementById('installOverlay').classList.add('open');
+};
+window.closeNewInstall=()=>document.getElementById('installOverlay').classList.remove('open');
+document.addEventListener('DOMContentLoaded',()=>{
+  const msel=document.getElementById('instMachine');
+  if(msel) msel.addEventListener('change',function(){
+    document.getElementById('instMachineOther').style.display=this.value==='other'?'':'none';
+  });
+  const io=document.getElementById('installOverlay');
+  if(io) io.addEventListener('click',e=>{if(e.target===io)io.classList.remove('open');});
+});
+window.saveNewInstall=()=>{
+  const business=document.getElementById('instBusiness').value.trim();
+  if(!business){toast('⚠ Εισάγετε τίτλο επιχείρησης');return;}
+  const promoItems={};
+  INSTALL_ITEMS[activeBrandTab].forEach(item=>{
+    const v=document.getElementById('inst_'+item.id)?.value;
+    if(v&&parseInt(v)>0) promoItems[item.name]=parseInt(v);
+  });
+  const machine=document.getElementById('instMachine').value==='other'
+    ?document.getElementById('instMachineOther').value.trim()
+    :document.getElementById('instMachine').value;
+  const entry={
+    type:'sales',subtype:'install',by:currentUser.name,
+    date:document.getElementById('instDate').value,ts:Date.now(),
+    business,
+    firstName:document.getElementById('instFirst').value.trim(),
+    lastName:document.getElementById('instLast').value.trim(),
+    area:document.getElementById('instArea').value.trim(),
+    zip:document.getElementById('instZip').value.trim(),
+    address:document.getElementById('instAddress').value.trim(),
+    phone:document.getElementById('instPhone').value.trim(),
+    email:document.getElementById('instEmail').value.trim(),
+    machine,grinder1:document.getElementById('instGrinder1').value,
+    grinder2:document.getElementById('instGrinder2').value,
+    filter:document.getElementById('instFilter').value,
+    brand:activeBrandTab,promoItems,
+    notes:document.getElementById('instNotes').value.trim(),
+  };
+  salesRef.push(entry);
+  db.ref('taresso_notifications').push({
+    ts:Date.now(),type:'new_install',from:currentUser.name,
+    business,area:entry.area,date:entry.date,seen:{},
+  });
+  closeNewInstall();
+  toast(`✓ "${business}" καταχωρήθηκε & κοινοποιήθηκε`);
+};
+
+// ── NOTIFICATIONS ──
+const NOTIF_RECIPIENTS=['Βασίλης','Γιώργος','Λευτέρης Γούναρης','Διονύσης'];
+let allNotifications=[];
+db.ref('taresso_notifications').on('value',snap=>{
+  allNotifications=Object.entries(snap.val()||{}).map(([k,v])=>({key:k,...v}));
+  renderNotifBell();
+});
+function renderNotifBell(){
+  if(!currentUser||!NOTIF_RECIPIENTS.includes(currentUser.name))return;
+  const bell=document.getElementById('notifBell');
+  if(!bell)return;
+  const nameKey=currentUser.name.replace(/ /g,'_');
+  const unseen=allNotifications.filter(n=>!n.seen?.[nameKey]);
+  bell.style.display='';
+  bell.innerHTML=unseen.length>0?`🔔<span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;margin-left:2px;">${unseen.length}</span>`:'🔔';
+  bell.style.color=unseen.length>0?'var(--gold)':'var(--text3)';
+}
+window.openNotifications=()=>{
+  if(!currentUser||!NOTIF_RECIPIENTS.includes(currentUser.name))return;
+  const nameKey=currentUser.name.replace(/ /g,'_');
+  const unseen=allNotifications.filter(n=>!n.seen?.[nameKey]);
+  unseen.forEach(n=>db.ref(`taresso_notifications/${n.key}/seen/${nameKey}`).set(true));
+  const all=allNotifications.sort((a,b)=>b.ts-a.ts).slice(0,15);
+  if(!all.length){toast('Δεν υπάρχουν ειδοποιήσεις');return;}
+  const list=all.map(n=>`• ${fmt(n.ts)} — ${n.from}: Νέα εγκατάσταση "${n.business}"${n.area?' ('+n.area+')':''}`).join('\n');
+  alert('🔔 Ειδοποιήσεις Νέων Εγκαταστάσεων:\n\n'+list);
+};
 
 // ── INIT ──
 if(document.readyState==='loading'){
