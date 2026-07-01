@@ -128,12 +128,8 @@ header{
 /* ── QC DAY BUTTONS ── */
 .qc-day-btn{
   flex:1;min-width:calc(20% - 8px);max-width:calc(20% - 2px);
-  background:var(--s1);border:1px solid var(--border);border-radius:9px;
+  background:var(--s2);border:2px solid var(--border);border-radius:10px;
   padding:10px 6px;text-align:center;cursor:pointer;transition:all 0.15s;
-}
-  flex-shrink:0;min-width:56px;padding:8px 6px;border-radius:10px;
-  border:2px solid var(--border);background:var(--s2);
-  cursor:pointer;transition:all 0.18s;text-align:center;
   display:flex;flex-direction:column;align-items:center;gap:3px;
 }
 .qc-day-btn:hover{border-color:var(--border2);}
@@ -918,6 +914,19 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);padding:6px 10px;background:var(--s2);border-radius:6px;">Α = 4×/μήνα</div>
         <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);padding:6px 10px;background:var(--s2);border-radius:6px;">Β = 2×/μήνα</div>
         <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);padding:6px 10px;background:var(--s2);border-radius:6px;">Γ = 1×/μήνα</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;" id="qcRegionFilters">
+        <div class="fchip active" onclick="setQcRegionFilter('',this)">Όλες</div>
+        <div class="fchip" onclick="setQcRegionFilter('Ανατολική Αττική',this)">Ανατολική Αττική</div>
+        <div class="fchip" onclick="setQcRegionFilter('Νότια Προάστια',this)">Νότια Προάστια</div>
+        <div class="fchip" onclick="setQcRegionFilter('Βορειοδυτική Αττική',this)">Βορειοδυτική Αττική</div>
+        <div class="fchip" onclick="setQcRegionFilter('Κέντρο Α',this)">Κέντρο Α</div>
+        <div class="fchip" onclick="setQcRegionFilter('Κέντρο Β',this)">Κέντρο Β</div>
+        <div class="fchip" onclick="setQcRegionFilter('Βορειοκεντρικά',this)">Βορειοκεντρικά</div>
+        <div class="fchip" onclick="setQcRegionFilter('Βορειοανατολικά',this)">Βορειοανατολικά</div>
+        <div class="fchip" onclick="setQcRegionFilter('Πειραιάς',this)">Πειραιάς</div>
+        <div class="fchip" onclick="setQcRegionFilter('Δυτικά',this)">Δυτικά</div>
+        <div class="fchip" onclick="setQcRegionFilter('Σαλαμίνα',this)">Σαλαμίνα</div>
       </div>
       <input type="text" id="qcClientSearch" placeholder="🔍 Αναζήτηση πελάτη..." oninput="renderQcClients()"
         style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none;margin-bottom:14px;">
@@ -3197,6 +3206,7 @@ window.resolveQcIssue=(ik)=>{
 
 // ── QC CLIENTS ──
 const QC_GRADES = {A:{label:'Α',visits:4,col:'#c9a84c'},B:{label:'Β',visits:2,col:'#6aa8d0'},C:{label:'Γ',visits:1,col:'#5aaa7a'}};
+const QC_REGIONS = ['Ανατολική Αττική','Νότια Προάστια','Βορειοδυτική Αττική','Κέντρο Α','Κέντρο Β','Βορειοκεντρικά','Βορειοανατολικά','Πειραιάς','Δυτικά','Σαλαμίνα'];
 
 function renderQcClients(){
   if(!canManageQcClients(currentUser)) return;
@@ -3207,6 +3217,7 @@ function renderQcClients(){
   let html='';
   sorted.forEach(([ck,cl])=>{
     const grade=allQcGrades[ck]?.grade||'';
+    const region=allQcGrades[ck]?.region||'';
     const active=allQcGrades[ck]?.active!==false;
     const visits=Object.values(allQcSchedule).filter(v=>v.clientKey===ck&&v.status==='done');
     const lastVisit=visits.sort((a,b)=>b.doneAt-a.doneAt)[0];
@@ -3227,7 +3238,7 @@ function renderQcClients(){
             <span style="font-size:14px;">${statusDot}</span>
             <span style="font-size:14px;font-weight:600;color:var(--text);">${cl.name}</span>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${cl.area||''} ${cl.salesRep?'· '+cl.salesRep:''} · ${clientVisits.length} επισκέψεις</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${cl.area||''} ${cl.salesRep?'· '+cl.salesRep:''} · ${clientVisits.length} επισκέψεις${region?' · <span style=\"color:var(--blue);\">'+region+'</span>':''}</div>
           ${lastVisit?`<div style="font-size:11px;color:var(--green);margin-top:2px;">✓ Τελ. επίσκεψη: ${new Date(lastVisit.doneAt).toLocaleDateString('el-GR')}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;">
@@ -3287,6 +3298,14 @@ function renderQcClients(){
               ${n}</button>`).join('')}
           </div>
         </div>
+        <div style="grid-column:1/-1;">
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:4px;">📍 ΠΕΡΙΟΧΗ</div>
+          <select onchange="setQcRegion('${ck}',this.value)"
+            style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:7px;font-size:12px;">
+            <option value="">— Επιλέξτε περιοχή —</option>
+            ${QC_REGIONS.map(r=>`<option value="${r}" ${region===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
       </div>
     </div>`;
   });
@@ -3306,6 +3325,19 @@ window.setQcEquipment=(ck,field,value)=>{
   const eq=allQcGrades[ck]?.equipment||{};
   eq[field]=value;
   qcGradesRef.child(ck).update({equipment:eq});
+};
+
+window.setQcRegion=(ck,region)=>{
+  qcGradesRef.child(ck).update({region});
+  toast('✓ Περιοχή: '+(region||'—'));
+};
+
+let qcRegionFilter='';
+window.setQcRegionFilter=(region,el)=>{
+  qcRegionFilter=region;
+  document.querySelectorAll('#qcRegionFilters .fchip').forEach(c=>c.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderQcClients();
 };
 
 window.setQcBarista=(ck,barista)=>{
