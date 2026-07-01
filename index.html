@@ -1784,7 +1784,7 @@ let qcSelectedDay = dateKey(new Date());
 
 function renderQcSchedule(){
   const isManager=['admin','qc_mgr'].includes(currentUser?.role);
-  document.getElementById('qcAddVisitWrap').style.display=isManager?'block':'none';
+  document.getElementById('qcAddVisitWrap').style.display=canSeeQC(currentUser)?'block':'none';
 
   const dates=getTwoWeekDates(qcWeekOffset);
   const mon=dates[0], fri=dates[9];
