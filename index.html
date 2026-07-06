@@ -945,7 +945,14 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <input type="date" id="qvDate">
     </div>
     <div class="field">
+      <label>Περιοχή (φίλτρο πελατών)</label>
+      <select id="qvRegion" onchange="filterQvClients()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;width:100%;font-size:14px;outline:none;">
+        <option value="">— Όλες οι περιοχές —</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Πελάτης</label>
+      <input type="text" id="qvClientSearch" placeholder="🔍 Αναζήτηση..." oninput="filterQvClients()" style="margin-bottom:6px;">
       <select id="qvClient" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;width:100%;font-size:14px;outline:none;">
         <option value="">— Επιλέξτε —</option>
       </select>
@@ -964,12 +971,63 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <select id="qvBarista" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;width:100%;font-size:14px;outline:none;"></select>
     </div>
     <div class="field">
+      <label>Βαθμολογία ποιότητας</label>
+      <div id="qvStars" style="display:flex;gap:8px;margin-top:4px;">
+        <span class="qv-star" data-val="1" onclick="setQvRating(1)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="qv-star" data-val="2" onclick="setQvRating(2)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="qv-star" data-val="3" onclick="setQvRating(3)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="qv-star" data-val="4" onclick="setQvRating(4)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="qv-star" data-val="5" onclick="setQvRating(5)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+      </div>
+      <div id="qvRatingLabel" style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:4px;"></div>
+    </div>
+    <div class="field">
       <label>Σημειώσεις (προαιρετικό)</label>
       <textarea id="qvNotes" placeholder="π.χ. έλεγχος εκχύλισης, εκπαίδευση latte art..."></textarea>
     </div>
     <div class="mactions">
       <button class="btng" onclick="closeQcVisitForm()">Ακύρωση</button>
       <button class="btn" onclick="saveQcVisit()">Αποθήκευση</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ QC EDIT VISIT MODAL ══ -->
+<div class="overlay" id="qcEditOverlay">
+  <div class="modal">
+    <button class="mclose" onclick="closeEditVisit()">×</button>
+    <div class="mtitle">✎ Επεξεργασία Επίσκεψης</div>
+    <div class="msub">Διόρθωση ή συμπλήρωση στοιχείων</div>
+    <input type="hidden" id="editVisitKey">
+    <div class="field"><label>Ημέρα</label><input type="date" id="editDate"></div>
+    <div class="field">
+      <label>Τύπος εργασίας</label>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;" id="editTypeWrap">
+        <div class="fchip" onclick="setEditType('check',this)">🔍 Ποιοτικός έλεγχος</div>
+        <div class="fchip" onclick="setEditType('training',this)">🎓 Εκπαίδευση</div>
+        <div class="fchip" onclick="setEditType('install',this)">🔧 Εγκατάσταση</div>
+        <div class="fchip" onclick="setEditType('filter',this)">💧 Αλλαγή φίλτρου</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Barista υπεύθυνος</label>
+      <select id="editBarista" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;width:100%;font-size:14px;outline:none;"></select>
+    </div>
+    <div class="field">
+      <label>Βαθμολογία ποιότητας</label>
+      <div id="editStars" style="display:flex;gap:8px;margin-top:4px;">
+        <span class="edit-star" data-val="1" onclick="setEditRating(1)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="edit-star" data-val="2" onclick="setEditRating(2)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="edit-star" data-val="3" onclick="setEditRating(3)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="edit-star" data-val="4" onclick="setEditRating(4)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+        <span class="edit-star" data-val="5" onclick="setEditRating(5)" style="font-size:28px;cursor:pointer;opacity:0.3;">★</span>
+      </div>
+      <div id="editRatingLabel" style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:4px;"></div>
+    </div>
+    <div class="field"><label>Σημειώσεις</label><textarea id="editNotes" placeholder="Σημειώσεις..."></textarea></div>
+    <div class="mactions">
+      <button class="btng" onclick="closeEditVisit()">Ακύρωση</button>
+      <button class="btn" onclick="saveEditVisit()">Αποθήκευση αλλαγών</button>
     </div>
   </div>
 </div>
@@ -1923,7 +1981,7 @@ function renderQcDayVisits(isManager){
             ${v.actions&&v.actions.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${v.actions.map(aid=>{const a=QC_ACTIONS.find(x=>x.id===aid);return a?`<span style="font-size:10px;background:rgba(90,170,122,0.12);border:1px solid rgba(90,170,122,0.3);border-radius:4px;padding:2px 6px;color:var(--green);">${a.icon} ${a.label}</span>`:''}).join('')}</div>`:''}
             ${v.notes?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">💬 ${v.notes}</div>`:''}` 
               :`<button class="btn" style="padding:8px 14px;font-size:12px;" onclick="completeQcVisit('${vk}')">✓ Τέλος</button>`}
-            ${isManager&&!isDone?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);margin-bottom:4px;" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button><button class="qfc-mbtn" style="color:var(--red);border-color:rgba(192,80,80,0.3);" onclick="deleteQcVisit('${vk}')">✕ Διαγραφή</button>`:''}
+            ${isManager&&!isDone?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);margin-bottom:4px;" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button><button class="qfc-mbtn" style="color:var(--red);border-color:rgba(192,80,80,0.3);" onclick="deleteQcVisit('${vk}')">✕ Διαγραφή</button>`:(!isDone&&v.barista===currentUser?.name?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button>`:'')}
           </div>
         </div>
       </div>`;
@@ -1939,19 +1997,134 @@ window.qcChangeWeek=(dir)=>{
 };
 
 window.openQcVisitForm=()=>openQcVisitFormDay(dateKey(new Date()));
-window.openQcVisitFormDay=(dk)=>{
-  document.getElementById('qvDate').value=dk||dateKey(new Date());
-  // populate client dropdown
+// ─── QC VISIT FORM HELPERS ───
+let qvRating = 0;
+let editRating = 0;
+let editType = 'check';
+
+const RATING_LABELS = {1:'Κακή',2:'Μέτρια',3:'Καλή',4:'Πολύ καλή',5:'Άριστη'};
+
+window.setQvRating=(val)=>{
+  qvRating=val;
+  document.querySelectorAll('.qv-star').forEach(s=>{
+    const v=parseInt(s.dataset.val);
+    s.style.opacity=v<=val?'1':'0.3';
+    s.style.color=v<=val?'var(--gold)':'var(--text3)';
+  });
+  document.getElementById('qvRatingLabel').textContent=val?`${val}/5 — ${RATING_LABELS[val]||''}` :'';
+};
+
+window.setEditRating=(val)=>{
+  editRating=val;
+  document.querySelectorAll('.edit-star').forEach(s=>{
+    const v=parseInt(s.dataset.val);
+    s.style.opacity=v<=val?'1':'0.3';
+    s.style.color=v<=val?'var(--gold)':'var(--text3)';
+  });
+  document.getElementById('editRatingLabel').textContent=val?`${val}/5 — ${RATING_LABELS[val]||''}` :'';
+};
+
+window.setEditType=(type,el)=>{
+  editType=type;
+  document.querySelectorAll('#editTypeWrap .fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+};
+
+// populate region dropdown in visit form
+function populateQvRegions(){
+  const sel=document.getElementById('qvRegion');
+  if(!sel) return;
+  sel.innerHTML='<option value="">— Όλες οι περιοχές —</option>'+
+    QC_REGIONS.map(r=>`<option value="${r}">${r}</option>`).join('');
+}
+
+window.filterQvClients=()=>{
+  const region=document.getElementById('qvRegion')?.value||'';
+  const search=(document.getElementById('qvClientSearch')?.value||'').toLowerCase();
   const sel=document.getElementById('qvClient');
   const sorted=Object.entries(allClients).sort(([,a],[,b])=>a.name.localeCompare(b.name,'el'));
+  const filtered=sorted.filter(([ck,c])=>{
+    const clientRegion=allQcGrades[ck]?.region||'';
+    const matchRegion=!region||clientRegion===region;
+    const matchSearch=!search||c.name.toLowerCase().includes(search)||(c.area||'').toLowerCase().includes(search);
+    return matchRegion&&matchSearch;
+  });
+  const prev=sel.value;
   sel.innerHTML='<option value="">— Επιλέξτε —</option>'+
-    sorted.map(([k,c])=>`<option value="${k}" data-name="${c.name}">${c.name} (${c.area||''})</option>`).join('');
+    filtered.map(([k,c])=>`<option value="${k}" data-name="${c.name}">${c.name}${c.area?' ('+c.area+')':''}</option>`).join('');
+  if(prev) sel.value=prev;
+};
+
+// ─── EDIT VISIT ───
+window.openEditVisit=(key)=>{
+  const v=allQcSchedule[key];
+  if(!v) return;
+  document.getElementById('editVisitKey').value=key;
+  document.getElementById('editDate').value=v.date||'';
+  document.getElementById('editNotes').value=v.notes||'';
+  // barista
+  const bsel=document.getElementById('editBarista');
+  bsel.innerHTML=QC_BARISTAS.map(b=>`<option value="${b}" ${b===v.barista?'selected':''}>${b}</option>`).join('');
+  // type
+  editType=v.type||'check';
+  document.querySelectorAll('#editTypeWrap .fchip').forEach(c=>{
+    const t=c.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+    c.classList.toggle('active',t===editType);
+  });
+  // rating
+  editRating=v.rating||0;
+  document.querySelectorAll('.edit-star').forEach(s=>{
+    const val=parseInt(s.dataset.val);
+    s.style.opacity=val<=editRating?'1':'0.3';
+    s.style.color=val<=editRating?'var(--gold)':'var(--text3)';
+  });
+  document.getElementById('editRatingLabel').textContent=editRating?`${editRating}/5 — ${RATING_LABELS[editRating]||''}` :'';
+  document.getElementById('qcEditOverlay').classList.add('open');
+};
+
+window.closeEditVisit=()=>document.getElementById('qcEditOverlay').classList.remove('open');
+
+window.saveEditVisit=()=>{
+  const key=document.getElementById('editVisitKey').value;
+  if(!key) return;
+  const updates={
+    date:document.getElementById('editDate').value,
+    type:editType,
+    barista:document.getElementById('editBarista').value,
+    notes:document.getElementById('editNotes').value.trim(),
+    rating:editRating||null,
+  };
+  qcScheduleRef.child(key).update(updates);
+  closeEditVisit();
+  toast('✓ Η επίσκεψη ενημερώθηκε');
+};
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const eo=document.getElementById('qcEditOverlay');
+  if(eo) eo.addEventListener('click',e=>{if(e.target===eo)eo.classList.remove('open');});
+});
+
+window.openQcVisitFormDay=(dk)=>{
+  document.getElementById('qvDate').value=dk||dateKey(new Date());
+  // populate region dropdown
+  populateQvRegions();
+  // reset client search & filter
+  const searchEl=document.getElementById('qvClientSearch');
+  if(searchEl) searchEl.value='';
+  const regionEl=document.getElementById('qvRegion');
+  if(regionEl) regionEl.value='';
+  filterQvClients();
   // populate barista dropdown
   const bsel=document.getElementById('qvBarista');
   bsel.innerHTML=QC_BARISTAS.map(b=>`<option value="${b}">${b}</option>`).join('');
+  if(['qc','qc_mgr'].includes(currentUser?.role)) bsel.value=currentUser.name;
   // reset type
   qvType='check';
   document.querySelectorAll('#qvTypeWrap .fchip').forEach((c,i)=>c.classList.toggle('active',i===0));
+  // reset rating
+  qvRating=0;
+  document.querySelectorAll('.qv-star').forEach(s=>{s.style.opacity='0.3';s.style.color='var(--text3)';});
+  document.getElementById('qvRatingLabel').textContent='';
   document.getElementById('qvNotes').value='';
   document.getElementById('qcVisitOverlay').classList.add('open');
 };
@@ -1983,7 +2156,8 @@ window.saveQcVisit=()=>{
   const barista=document.getElementById('qvBarista').value;
   const notes=document.getElementById('qvNotes').value.trim();
   if(!date||!clientKey||!barista){ toast('⚠ Συμπλήρωσε όλα τα πεδία'); return; }
-  qcScheduleRef.push({date,clientKey,clientName,type:qvType,barista,notes,status:'pending',
+  qcScheduleRef.push({date,clientKey,clientName,type:qvType,barista,notes,
+    rating:qvRating||null,status:'pending',
     createdBy:currentUser.name,createdAt:Date.now()});
   closeQcVisitForm();
   toast('✓ Επίσκεψη προστέθηκε!');
