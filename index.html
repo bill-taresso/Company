@@ -1032,6 +1032,18 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
   </div>
 </div>
 
+<!-- ══ QC CLIENT HISTORY MODAL ══ -->
+<div class="overlay" id="clientHistoryOverlay">
+  <div class="modal" style="max-width:600px;">
+    <button class="mclose" onclick="closeClientHistory()">×</button>
+    <div class="mtitle" id="clientHistoryTitle"></div>
+    <div class="msub" id="clientHistorySub"></div>
+    <div id="clientHistoryStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;"></div>
+    <div class="feed-title">Ιστορικό Επισκέψεων</div>
+    <div id="clientHistoryFeed"></div>
+  </div>
+</div>
+
 <!-- ══ QC MACHINE OVERLAY ══ -->
 <div class="overlay" id="qcMachineOverlay">
   <div class="modal">
@@ -3507,7 +3519,7 @@ function renderQcClients(){
     const clientVisits=Object.values(allQcSchedule).filter(v=>v.clientKey===ck&&v.status==='done');
     const machineOpts=QC_MACHINES.map(m=>`<option value="${m}" ${eq.machine===m?'selected':''}>${m}</option>`).join('');
     const grinderOpts=QC_GRINDERS.map(g=>`<option value="${g}" ${eq.grinder===g?'selected':''}>${g}</option>`).join('');
-    html+=`<div style="background:var(--s1);border:1px solid ${active?'var(--border)':'rgba(192,80,80,0.3)'};border-radius:12px;padding:14px 16px;margin-bottom:8px;${active?'':'opacity:0.6'}">
+    html+=`<div style="background:var(--s1);border:1px solid ${active?'var(--border)':'rgba(192,80,80,0.3)'};border-radius:12px;padding:14px 16px;margin-bottom:8px;${active?'':'opacity:0.6'}" ondblclick="openClientHistory('${ck}')">
       <!-- Header row -->
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
         <div style="flex:1;min-width:0;">
@@ -3519,6 +3531,7 @@ function renderQcClients(){
           ${lastVisit?`<div style="font-size:11px;color:var(--green);margin-top:2px;">✓ Τελ. επίσκεψη: ${new Date(lastVisit.doneAt).toLocaleDateString('el-GR')}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+          <button onclick="event.stopPropagation();openClientHistory('${ck}')" style="padding:5px 9px;border-radius:7px;border:1px solid var(--border);background:var(--s2);color:var(--text2);cursor:pointer;font-size:11px;">📋 ${clientVisits.length}</button>
           <select onchange="setQcBarista('${ck}',this.value)"
             style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
             ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista?'selected':''}>${b}</option>`).join('')}
