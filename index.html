@@ -906,6 +906,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
           <div class="ssub">Διαβαθμίσεις & συχνότητα επισκέψεων</div>
         </div>
         <div style="display:flex;gap:8px;">
+          <button class="btn" style="padding:8px 14px;font-size:12px;background:var(--green);color:#fff;" onclick="openAddClientModal()">+ Νέος Πελάτης</button>
           <button class="btn" style="padding:8px 14px;font-size:12px;" onclick="generateQcSchedule()">⚡ Auto-generate 6μηνο</button>
           <button class="btng" style="padding:8px 14px;font-size:12px;" onclick="const bf=document.getElementById('bulkFrom'),bt=document.getElementById('bulkTo');const opts=QC_BARISTAS.map(b=>`<option value='${b}'>${b}</option>`).join('');bf.innerHTML='<option value=\'\'>— Επιλέξτε —</option>'+opts;bt.innerHTML='<option value=\'\'>— Επιλέξτε —</option>'+opts;document.getElementById('bulkTransferModal').style.display='flex'">↔ Μαζική Αλλαγή</button>
         </div>
@@ -916,7 +917,8 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);padding:6px 10px;background:var(--s2);border-radius:6px;">Γ = 1×/μήνα</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;" id="qcRegionFilters">
-        <div class="fchip active" onclick="setQcRegionFilter('',this)">Όλες</div>
+        <div class="fchip active" onclick="setQcRegionFilter('',this)">Ενεργοί</div>
+        <div class="fchip" onclick="setQcRegionFilter('__inactive__',this)" style="border-color:rgba(192,80,80,0.4);color:var(--red);">✗ Ανενεργοί</div>
         <div class="fchip" onclick="setQcRegionFilter('Ανατολική Αττική',this)">Ανατολική Αττική</div>
         <div class="fchip" onclick="setQcRegionFilter('Νότια Προάστια',this)">Νότια Προάστια</div>
         <div class="fchip" onclick="setQcRegionFilter('Βορειοδυτική Αττική',this)">Βορειοδυτική Αττική</div>
@@ -1028,6 +1030,49 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
     <div class="mactions">
       <button class="btng" onclick="closeEditVisit()">Ακύρωση</button>
       <button class="btn" onclick="saveEditVisit()">Αποθήκευση αλλαγών</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD CLIENT MODAL ══ -->
+<div class="overlay" id="addClientOverlay">
+  <div class="modal">
+    <button class="mclose" onclick="closeAddClientModal()">×</button>
+    <div class="mtitle">+ Νέος Πελάτης QC</div>
+    <div class="msub">Προσθήκη καταστήματος στο πελατολόγιο</div>
+    <div class="field"><label>Επωνυμία *</label><input type="text" id="ncName" placeholder="π.χ. ΚΑΦΕΤΕΡΙΑ ΑΘΗΝΑΙΟΝ"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="field"><label>Περιοχή</label><input type="text" id="ncArea" placeholder="π.χ. Κηφισιά"></div>
+      <div class="field"><label>Ζώνη QC</label>
+        <select id="ncRegion" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:7px;width:100%;font-size:14px;outline:none;">
+          <option value="">— Επιλέξτε —</option>
+          <option>Ανατολική Αττική</option><option>Νότια Προάστια</option>
+          <option>Βορειοδυτική Αττική</option><option>Κέντρο Α</option>
+          <option>Κέντρο Β</option><option>Βορειοκεντρικά</option>
+          <option>Βορειοανατολικά</option><option>Πειραιάς</option>
+          <option>Δυτικά</option><option>Σαλαμίνα</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Πωλητής</label>
+      <select id="ncSalesRep" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:7px;width:100%;font-size:14px;outline:none;">
+        <option value="">— Επιλέξτε —</option>
+        <option>Βαγγέλης Σολωμός</option><option>Παναγιώτης Τσινάκης</option>
+        <option>Νίκος Φωτόπουλος</option><option>Κωσταντίνος Πασλής</option>
+        <option>Παναγιώτης Γιαζιτζής</option><option>Αλέξανδρος Στεργιόπουλος</option>
+        <option>Λευτέρης Γούναρης</option>
+      </select>
+    </div>
+    <div class="field"><label>Κατηγορία QC</label>
+      <div style="display:flex;gap:8px;">
+        <button class="fchip active" id="ncGradeA" onclick="setNcGrade('A')">Α — 4×/μήνα</button>
+        <button class="fchip" id="ncGradeB" onclick="setNcGrade('B')">Β — 2×/μήνα</button>
+        <button class="fchip" id="ncGradeC" onclick="setNcGrade('C')">Γ — 1×/μήνα</button>
+      </div>
+    </div>
+    <div class="mactions">
+      <button class="btng" onclick="closeAddClientModal()">Ακύρωση</button>
+      <button class="btn" onclick="saveNewClient()">Αποθήκευση</button>
     </div>
   </div>
 </div>
@@ -1360,7 +1405,7 @@ function canSeeProd(u){return ['admin','prod_mgr','production'].includes(u.role)
 function canSeeSales(u){return ['admin','sales_mgr','sales'].includes(u.role);}
 function canSeeInvoicing(u){return ['admin','invoicing'].includes(u.role);}
 function canSeeQC(u){return ['admin','qc_mgr','qc'].includes(u.role);}
-function canManageQcClients(u){return ['admin','qc_mgr'].includes(u.role)||u.name==='Λευτέρης Γούναρης';}
+function canManageQcClients(u){return ['admin','qc_mgr'].includes(u.role)||u.name==='Λευτέρης Γούναρης'||u.name==='Διονύσης';}
 function canSeeService(u){return ['admin'].includes(u.role);}
 function canSeeOrders(u){return ['admin','sales_mgr','sales','invoicing'].includes(u.role);}
 function userDept(u){return u.dept||'admin';}
@@ -3501,7 +3546,13 @@ function renderQcClients(){
   const search=(document.getElementById('qcClientSearch')?.value||'').toLowerCase();
   const sorted=Object.entries(allClients)
     .filter(([,c])=>!search||c.name.toLowerCase().includes(search)||(c.area||'').toLowerCase().includes(search))
-    .filter(([ck])=>!qcRegionFilter||(allQcGrades[ck]?.region||'')=== qcRegionFilter)
+    .filter(([ck])=>{
+      const isActive=allQcGrades[ck]?.active!==false;
+      if(qcRegionFilter==='__inactive__') return !isActive;
+      if(qcRegionFilter==='__all__') return true;
+      if(!qcRegionFilter) return isActive; // default: hide inactive
+      return isActive&&(allQcGrades[ck]?.region||'')=== qcRegionFilter;
+    })
     .sort(([,a],[,b])=>a.name.localeCompare(b.name,'el'));
   let html='';
   sorted.forEach(([ck,cl])=>{
@@ -3519,7 +3570,7 @@ function renderQcClients(){
     const clientVisits=Object.values(allQcSchedule).filter(v=>v.clientKey===ck&&v.status==='done');
     const machineOpts=QC_MACHINES.map(m=>`<option value="${m}" ${eq.machine===m?'selected':''}>${m}</option>`).join('');
     const grinderOpts=QC_GRINDERS.map(g=>`<option value="${g}" ${eq.grinder===g?'selected':''}>${g}</option>`).join('');
-    html+=`<div style="background:var(--s1);border:1px solid ${active?'var(--border)':'rgba(192,80,80,0.3)'};border-radius:12px;padding:14px 16px;margin-bottom:8px;${active?'':'opacity:0.6'}" ondblclick="openClientHistory('${ck}')">
+    html+=`<div style="background:var(--s1);border:1px solid ${active?'var(--border)':'rgba(192,80,80,0.3)'};border-radius:12px;padding:14px 16px;margin-bottom:8px;${active?'':'opacity:0.6'}">
       <!-- Header row -->
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
         <div style="flex:1;min-width:0;">
@@ -3531,7 +3582,7 @@ function renderQcClients(){
           ${lastVisit?`<div style="font-size:11px;color:var(--green);margin-top:2px;">✓ Τελ. επίσκεψη: ${new Date(lastVisit.doneAt).toLocaleDateString('el-GR')}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-          <button onclick="event.stopPropagation();openClientHistory('${ck}')" style="padding:5px 9px;border-radius:7px;border:1px solid var(--border);background:var(--s2);color:var(--text2);cursor:pointer;font-size:11px;">📋 ${clientVisits.length}</button>
+          <button onclick="openClientHistory('${ck}')" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(106,168,208,0.4);background:rgba(106,168,208,0.08);color:var(--blue);cursor:pointer;font-size:12px;font-weight:600;">📋 Ιστορικό (${clientVisits.length})</button>
           <select onchange="setQcBarista('${ck}',this.value)"
             style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
             ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista?'selected':''}>${b}</option>`).join('')}
@@ -3627,6 +3678,11 @@ window.setQcRegionFilter=(region,el)=>{
   qcRegionFilter=region;
   document.querySelectorAll('#qcRegionFilters .fchip').forEach(c=>c.classList.remove('active'));
   if(el) el.classList.add('active');
+  renderQcClients();
+};
+window.showAllClients=()=>{
+  qcRegionFilter='__all__';
+  document.querySelectorAll('#qcRegionFilters .fchip').forEach(c=>c.classList.remove('active'));
   renderQcClients();
 };
 
@@ -4084,6 +4140,91 @@ window.openNotifications=()=>{
   const list=all.map(n=>`• ${fmt(n.ts)} — ${n.from}: Νέα εγκατάσταση "${n.business}"${n.area?' ('+n.area+')':''}`).join('\n');
   alert('🔔 Ειδοποιήσεις Νέων Εγκαταστάσεων:\n\n'+list);
 };
+
+
+// ── ADD NEW CLIENT ──
+let ncGrade = 'A';
+window.openAddClientModal=()=>{
+  document.getElementById('ncName').value='';
+  document.getElementById('ncArea').value='';
+  document.getElementById('ncRegion').value='';
+  document.getElementById('ncSalesRep').value='';
+  ncGrade='A';
+  ['A','B','C'].forEach(g=>document.getElementById('ncGrade'+g).classList.toggle('active',g==='A'));
+  document.getElementById('addClientOverlay').classList.add('open');
+};
+window.closeAddClientModal=()=>document.getElementById('addClientOverlay').classList.remove('open');
+window.setNcGrade=(g)=>{
+  ncGrade=g;
+  ['A','B','C'].forEach(x=>document.getElementById('ncGrade'+x).classList.toggle('active',x===g));
+};
+window.saveNewClient=()=>{
+  const name=document.getElementById('ncName').value.trim().toUpperCase();
+  if(!name){toast('⚠ Εισάγετε επωνυμία');return;}
+  const area=document.getElementById('ncArea').value.trim();
+  const region=document.getElementById('ncRegion').value;
+  const salesRep=document.getElementById('ncSalesRep').value;
+  // save to Firebase clients
+  const newRef=clientsRef.push();
+  const ck=newRef.key;
+  newRef.set({name,area,salesRep,active:true,createdAt:Date.now(),createdBy:currentUser.name});
+  // set QC grade and region
+  qcGradesRef.child(ck).set({grade:ncGrade,region,active:true});
+  closeAddClientModal();
+  toast('✓ Ο πελάτης "'+name+'" προστέθηκε!');
+  setTimeout(renderQcClients, 800);
+};
+document.addEventListener('DOMContentLoaded',()=>{
+  const ao=document.getElementById('addClientOverlay');
+  if(ao) ao.addEventListener('click',e=>{if(e.target===ao)ao.classList.remove('open');});
+});
+
+// ── CLIENT HISTORY ──
+window.openClientHistory=(ck)=>{
+  const cl=allClients[ck];
+  if(!cl) return;
+  const allVisits=Object.values(allQcSchedule)
+    .filter(v=>v.clientKey===ck)
+    .sort((a,b)=>(b.doneAt||b.ts||0)-(a.doneAt||a.ts||0));
+  const done=allVisits.filter(v=>v.status==='done');
+  const pending=allVisits.filter(v=>v.status!=='done');
+  const avgRating=done.filter(v=>v.rating).length>0
+    ?(done.reduce((s,v)=>s+(v.rating||0),0)/done.filter(v=>v.rating).length).toFixed(1)
+    :null;
+  const grade=allQcGrades[ck]?.grade||'';
+  const region=allQcGrades[ck]?.region||'';
+  document.getElementById('clientHistoryTitle').textContent=cl.name;
+  document.getElementById('clientHistorySub').textContent=[cl.area,cl.salesRep,region,grade?'Κατηγορία '+grade:''].filter(Boolean).join(' · ');
+  document.getElementById('clientHistoryStats').innerHTML=`
+    <div class="sstat" style="padding:12px;"><div class="sstat-label">Επισκέψεις</div><div class="sstat-val" style="color:var(--blue);font-size:24px;">${done.length}</div><div class="sstat-sub">ολοκληρωμένες</div></div>
+    <div class="sstat" style="padding:12px;"><div class="sstat-label">Εκκρεμείς</div><div class="sstat-val" style="color:var(--gold);font-size:24px;">${pending.length}</div><div class="sstat-sub">προγραμματισμένες</div></div>
+    <div class="sstat" style="padding:12px;"><div class="sstat-label">Μέση βαθμολογία</div><div class="sstat-val" style="color:var(--gold);font-size:24px;">${avgRating||'—'}</div><div class="sstat-sub">${avgRating?'/ 5 ⭐':''}</div></div>`;
+  const QCT={check:'🔍 Ποιοτικός',training:'🎓 Εκπαίδευση',install:'🔧 Εγκατάσταση',filter:'💧 Φίλτρο',motor_oil_24:'🏪 24shopen',athens_plaza:'🏨 Athens Plaza',event_motoroil:'🎪 Event',province:'🗺️ Επαρχία'};
+  const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν επισκέψεις</div>`;
+  document.getElementById('clientHistoryFeed').innerHTML=allVisits.length?allVisits.map(v=>{
+    const isDone=v.status==='done';
+    const dt=v.doneAt?new Date(v.doneAt).toLocaleDateString('el-GR'):v.date||'';
+    return `<div class="feed-item" style="align-items:flex-start;">
+      <div style="width:8px;height:8px;border-radius:50%;background:${isDone?'var(--green)':'var(--gold)'};flex-shrink:0;margin-top:6px;"></div>
+      <div class="fbody" style="flex:1;min-width:0;">
+        <div class="fhdr">
+          <span style="font-size:12px;font-weight:600;color:var(--text);">${dt}</span>
+          <span style="font-size:11px;color:var(--text3);">${QCT[v.type]||v.type||''}</span>
+          <span class="ftime">👤 ${v.barista||'—'}</span>
+          ${isDone?'<span style="font-size:10px;color:var(--green);">✅</span>':'<span style="font-size:10px;color:var(--gold);">⏳</span>'}
+        </div>
+        ${v.rating?`<div style="margin-top:3px;">${Array.from({length:5},(_,i)=>`<span style="font-size:14px;color:${i<v.rating?'var(--gold)':'var(--border2)'};">★</span>`).join('')}<span style="font-size:10px;color:var(--text3);margin-left:4px;">${v.rating}/5</span></div>`:''}
+        ${v.notes?`<div style="font-size:11px;color:var(--text2);background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:6px 8px;margin-top:4px;word-break:break-word;">💬 ${v.notes}</div>`:''}
+      </div>
+    </div>`;
+  }).join(''):empty;
+  document.getElementById('clientHistoryOverlay').classList.add('open');
+};
+window.closeClientHistory=()=>document.getElementById('clientHistoryOverlay').classList.remove('open');
+document.addEventListener('DOMContentLoaded',()=>{
+  const cho=document.getElementById('clientHistoryOverlay');
+  if(cho) cho.addEventListener('click',e=>{if(e.target===cho)cho.classList.remove('open');});
+});
 
 // ── INIT ──
 if(document.readyState==='loading'){
