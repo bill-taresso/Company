@@ -929,6 +929,9 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div class="fchip" onclick="setQcRegionFilter('Πειραιάς',this)">Πειραιάς</div>
         <div class="fchip" onclick="setQcRegionFilter('Δυτικά',this)">Δυτικά</div>
         <div class="fchip" onclick="setQcRegionFilter('Σαλαμίνα',this)">Σαλαμίνα</div>
+        <div class="fchip" onclick="setQcRegionFilter('Επαρχία',this)">🗺️ Επαρχία</div>
+        <div class="fchip" onclick="setQcRegionFilter('Λοιπά Καταστήματα',this)">🏪 Λοιπά Καταστήματα</div>
+        <div class="fchip" onclick="setQcRegionFilter('Νησιά',this)">🏝️ Νησιά</div>
       </div>
       <input type="text" id="qcClientSearch" placeholder="🔍 Αναζήτηση πελάτη..." oninput="renderQcClients()"
         style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none;margin-bottom:14px;">
@@ -3539,7 +3542,7 @@ window.resolveQcIssue=(ik)=>{
 
 // ── QC CLIENTS ──
 const QC_GRADES = {A:{label:'Α',visits:4,col:'#c9a84c'},B:{label:'Β',visits:2,col:'#6aa8d0'},C:{label:'Γ',visits:1,col:'#5aaa7a'}};
-const QC_REGIONS = ['Ανατολική Αττική','Νότια Προάστια','Βορειοδυτική Αττική','Κέντρο Α','Κέντρο Β','Βορειοκεντρικά','Βορειοανατολικά','Πειραιάς','Δυτικά','Σαλαμίνα'];
+const QC_REGIONS = ['Ανατολική Αττική','Νότια Προάστια','Βορειοδυτική Αττική','Κέντρο Α','Κέντρο Β','Βορειοκεντρικά','Βορειοανατολικά','Πειραιάς','Δυτικά','Σαλαμίνα','Επαρχία','Λοιπά Καταστήματα','Νησιά'];
 
 function renderQcClients(){
   if(!canManageQcClients(currentUser)) return;
