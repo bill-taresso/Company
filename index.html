@@ -617,6 +617,8 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div class="sales-stats" id="salesStats"></div>
         <div class="feed-title" id="dashInstallFeedTitle" style="display:none;margin-top:20px;"></div>
         <div id="dashInstallFeed"></div>
+        <div class="feed-title" id="dashQcFeedTitle" style="margin-top:20px;">🔍 Επισκέψεις QC στους πελάτες μου</div>
+        <div id="dashQcFeed"></div>
         <div class="feed-title" id="salesFeedTitle" style="margin-top:20px"></div>
         <div id="salesFeed"></div>
       </main>
@@ -1066,6 +1068,18 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <option>Λευτέρης Γούναρης</option>
       </select>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="field"><label>Barista QC (1ος)</label>
+        <select id="ncBarista1" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:7px;width:100%;font-size:14px;outline:none;">
+          <option value="">— Επιλέξτε —</option>
+        </select>
+      </div>
+      <div class="field"><label>Barista QC (2ος)</label>
+        <select id="ncBarista2" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:7px;width:100%;font-size:14px;outline:none;">
+          <option value="">— Κανένας —</option>
+        </select>
+      </div>
+    </div>
     <div class="field"><label>Κατηγορία QC</label>
       <div style="display:flex;gap:8px;">
         <button class="fchip active" id="ncGradeA" onclick="setNcGrade('A')">Α — 4×/μήνα</button>
@@ -1437,6 +1451,7 @@ qcIssuesRef.on('value',snap=>{
 qcScheduleRef.on('value',snap=>{
   allQcSchedule=snap.val()||{};
   if(document.getElementById('qcSection')?.style.display!=='none') renderQcSchedule();
+  if(document.getElementById('salesSection')?.style.display!=='none') renderQcVisitsForSalesRep();
 });
 qcRef.on('value',snap=>{
   allQcFilters=snap.val()||{};
@@ -2142,12 +2157,17 @@ window.filterQvClients=()=>{
   const region=document.getElementById('qvRegion')?.value||'';
   const search=(document.getElementById('qvClientSearch')?.value||'').toLowerCase();
   const sel=document.getElementById('qvClient');
+  const isManager=['admin','qc_mgr'].includes(currentUser?.role);
   const sorted=Object.entries(allClients).sort(([,a],[,b])=>a.name.localeCompare(b.name,'el'));
   const filtered=sorted.filter(([ck,c])=>{
-    const clientRegion=allQcGrades[ck]?.region||'';
+    const grades=allQcGrades[ck]||{};
+    const clientRegion=grades.region||'';
     const matchRegion=!region||clientRegion===region;
     const matchSearch=!search||c.name.toLowerCase().includes(search)||(c.area||'').toLowerCase().includes(search);
-    return matchRegion&&matchSearch;
+    // non-managers see only their assigned clients (barista1 or barista2)
+    const myName=currentUser?.name||'';
+    const matchBarista=isManager||(grades.barista===myName||grades.barista2===myName);
+    return matchRegion&&matchSearch&&matchBarista;
   });
   const prev=sel.value;
   sel.innerHTML='<option value="">— Επιλέξτε —</option>'+
@@ -2911,6 +2931,47 @@ function renderSalesDash(){
     if(titleEl){titleEl.style.display='';titleEl.textContent='🏪 Εγκαταστάσεις';}
     renderInstallFeed('dashInstallFeed',5);
   }
+  renderQcVisitsForSalesRep();
+}
+
+function renderQcVisitsForSalesRep(){
+  const u=currentUser;
+  const feedEl=document.getElementById('dashQcFeed');
+  const titleEl=document.getElementById('dashQcFeedTitle');
+  if(!feedEl||!titleEl) return;
+  const isSalesManager=['admin','sales_mgr'].includes(u?.role);
+  // find clientKeys belonging to this sales rep (or all if manager)
+  const myClientKeys=Object.entries(allClients)
+    .filter(([,c])=>isSalesManager||c.salesRep===u?.name)
+    .map(([ck])=>ck);
+  if(!myClientKeys.length){
+    titleEl.style.display='none';
+    feedEl.innerHTML='';
+    return;
+  }
+  titleEl.style.display='';
+  titleEl.textContent=isSalesManager?'🔍 Επισκέψεις QC στους πελάτες':'🔍 Επισκέψεις QC στους πελάτες μου';
+  const visits=Object.values(allQcSchedule)
+    .filter(v=>v.status==='done'&&myClientKeys.includes(v.clientKey))
+    .sort((a,b)=>(b.doneAt||0)-(a.doneAt||0))
+    .slice(0,8);
+  const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν επισκέψεις QC ακόμα</div>`;
+  const QCT={check:'🔍 Ποιοτικός έλεγχος',training:'🎓 Εκπαίδευση',install:'🔧 Εγκατάσταση',filter:'💧 Αλλαγή φίλτρου',motor_oil_24:'🏪 24shopen/Motor Oil',athens_plaza:'🏨 Athens Plaza',event_motoroil:'🎪 Event Motor Oil',province:'🗺️ Επαρχία'};
+  feedEl.innerHTML=visits.length?visits.map(v=>{
+    const dt=v.doneAt?new Date(v.doneAt).toLocaleDateString('el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):v.date||'';
+    return `<div class="feed-item" style="align-items:flex-start;">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:6px;"></div>
+      <div class="fbody" style="flex:1;min-width:0;">
+        <div class="fhdr">
+          <span style="font-size:13px;font-weight:600;color:var(--text);">${v.clientName||'—'}</span>
+          <span class="ftime">${dt}</span>
+        </div>
+        <div class="fdetail">${QCT[v.type]||v.type||''} · 👤 ${v.barista||'—'}</div>
+        ${v.rating?`<div style="margin-top:2px;">${Array.from({length:5},(_,i)=>`<span style="font-size:13px;color:${i<v.rating?'var(--gold)':'var(--border2)'};">★</span>`).join('')}</div>`:''}
+        ${v.notes?`<div style="font-size:11px;color:var(--text2);background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:6px 8px;margin-top:4px;word-break:break-word;">💬 ${v.notes}</div>`:''}
+      </div>
+    </div>`;
+  }).join(''):empty;
 }
 
 function renderLogStats(){
@@ -3565,6 +3626,7 @@ function renderQcClients(){
     const visits=Object.values(allQcSchedule).filter(v=>v.clientKey===ck&&v.status==='done');
     const lastVisit=visits.sort((a,b)=>b.doneAt-a.doneAt)[0];
     const assignedBarista=allQcGrades[ck]?.barista||QC_BARISTAS[0]||'';
+    const assignedBarista2=allQcGrades[ck]?.barista2||'';
     const eq=allQcGrades[ck]?.equipment||{};
     const clientIssues=Object.values(allQcIssues).filter(i=>i.clientKey===ck&&i.status==='open');
     const hasUrgent=clientIssues.some(i=>i.severity==='urgent');
@@ -3589,6 +3651,11 @@ function renderQcClients(){
           <select onchange="setQcBarista('${ck}',this.value)"
             style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
             ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista?'selected':''}>${b}</option>`).join('')}
+          </select>
+          <select onchange="setQcBarista2('${ck}',this.value)" title="2ος Barista"
+            style="background:var(--s2);border:1px solid rgba(106,168,208,0.3);color:${assignedBarista2?'var(--blue)':'var(--text3)'};padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
+            <option value="">+2ος</option>
+            ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista2?'selected':''}>${b}</option>`).join('')}
           </select>
           ${['A','B','C'].map(g=>`<button onclick="setQcGrade('${ck}','${g}')"
             style="width:30px;height:30px;border-radius:7px;border:2px solid ${grade===g?QC_GRADES[g].col:'var(--border)'};
@@ -3674,6 +3741,11 @@ window.setQcEquipment=(ck,field,value)=>{
 window.setQcRegion=(ck,region)=>{
   qcGradesRef.child(ck).update({region});
   toast('✓ Περιοχή: '+(region||'—'));
+};
+
+window.setQcBarista2=(ck,barista2)=>{
+  qcGradesRef.child(ck).update({barista2:barista2||null});
+  toast(barista2?`✓ 2ος Barista: ${barista2}`:'✓ 2ος Barista αφαιρέθηκε');
 };
 
 let qcRegionFilter='';
@@ -4154,6 +4226,10 @@ window.openAddClientModal=()=>{
   document.getElementById('ncSalesRep').value='';
   ncGrade='A';
   ['A','B','C'].forEach(g=>document.getElementById('ncGrade'+g).classList.toggle('active',g==='A'));
+  // populate barista dropdowns
+  const bOptions='<option value="">— Επιλέξτε —</option>'+QC_BARISTAS.map(b=>`<option value="${b}">${b}</option>`).join('');
+  document.getElementById('ncBarista1').innerHTML=bOptions;
+  document.getElementById('ncBarista2').innerHTML='<option value="">— Κανένας —</option>'+QC_BARISTAS.map(b=>`<option value="${b}">${b}</option>`).join('');
   document.getElementById('addClientOverlay').classList.add('open');
 };
 window.closeAddClientModal=()=>document.getElementById('addClientOverlay').classList.remove('open');
@@ -4167,12 +4243,15 @@ window.saveNewClient=()=>{
   const area=document.getElementById('ncArea').value.trim();
   const region=document.getElementById('ncRegion').value;
   const salesRep=document.getElementById('ncSalesRep').value;
-  // save to Firebase clients
+  const barista1=document.getElementById('ncBarista1')?.value||'';
+  const barista2=document.getElementById('ncBarista2')?.value||'';
   const newRef=clientsRef.push();
   const ck=newRef.key;
   newRef.set({name,area,salesRep,active:true,createdAt:Date.now(),createdBy:currentUser.name});
-  // set QC grade and region
-  qcGradesRef.child(ck).set({grade:ncGrade,region,active:true});
+  const gradeData={grade:ncGrade,region,active:true};
+  if(barista1) gradeData.barista=barista1;
+  if(barista2) gradeData.barista2=barista2;
+  qcGradesRef.child(ck).set(gradeData);
   closeAddClientModal();
   toast('✓ Ο πελάτης "'+name+'" προστέθηκε!');
   setTimeout(renderQcClients, 800);
