@@ -1422,7 +1422,7 @@ function lsSet(k,v){localStorage.setItem(k,JSON.stringify(v));}
 function canSeeProd(u){return ['admin','prod_mgr','production'].includes(u.role);}
 function canSeeSales(u){return ['admin','sales_mgr','sales'].includes(u.role);}
 function canSeeInvoicing(u){return ['admin','invoicing'].includes(u.role);}
-function canSeeQC(u){return ['admin','qc_mgr','qc'].includes(u.role);}
+function canSeeQC(u){return ['admin','qc_mgr','qc'].includes(u.role)||u.name==='Λευτέρης Γούναρης';}
 function canManageQcClients(u){return ['admin','qc_mgr'].includes(u.role)||u.name==='Λευτέρης Γούναρης'||u.name==='Διονύσης';}
 function canSeeService(u){return ['admin'].includes(u.role);}
 function canSeeOrders(u){return ['admin','sales_mgr','sales','invoicing'].includes(u.role);}
