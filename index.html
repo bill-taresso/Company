@@ -690,7 +690,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div id="salesHistFeed"></div>
       </main>
     </div>
-    <div id="sales-team" style="display:none"><main><div class="stitle">Απόδοση Ομάδας</div><div class="ssub" id="teamSub"></div><div id="teamTable"></div></main></div>
+    <div id="sales-team" style="display:none"><main><div class="stitle">Απόδοση Ομάδας</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;"><button class="btng" onclick="exportSalesCsv('logs')">⬇ Εξαγωγή καταχωρήσεων (CSV)</button><button class="btng" onclick="exportSalesCsv('clients')">⬇ Εξαγωγή πελατών/πωλητών (CSV)</button><button class="btng" onclick="exportSalesCsv('json')">⬇ Όλα (JSON)</button></div><div class="ssub" id="teamSub"></div><div id="teamTable"></div></main></div>
   </div>
 
 <!-- ══ PRODUCTION MODALS ══ -->
@@ -3245,6 +3245,24 @@ function renderLogStats(){
     <div class="sales-stats">${statCards(n)}</div>`;
   renderInstallFeed('logInstallFeed');
 }
+
+
+window.exportSalesCsv=(what)=>{
+  const q=v=>{if(v===undefined||v===null)return '';if(typeof v==='object')v=JSON.stringify(v);v=String(v).replace(/"/g,'""');return /[",;\n]/.test(v)?`"${v}"`:v;};
+  const toCsv=(rows,cols)=>'﻿'+[cols.join(',')].concat(rows.map(r=>cols.map(c=>q(r[c])).join(','))).join('\n');
+  let content,name,type='text/csv;charset=utf-8';
+  if(what==='logs'){
+    const rows=allSalesLogs.map(e=>({date:e.date,type:e.subtype,salesperson:e.by,client:e.client||e.business,area:e.area,notes:e.notes,dealValue:e.dealValue,dealProduct:e.dealProduct,phone:e.phone,email:e.email,address:e.address,machine:e.machine,timestamp:e.ts?new Date(e.ts).toISOString():''}));
+    content=toCsv(rows,['date','type','salesperson','client','area','notes','dealValue','dealProduct','phone','email','address','machine','timestamp']);name='taresso_sales_logs.csv';
+  } else if(what==='clients'){
+    const rows=Object.entries(allClients).map(([k,c])=>({id:k,name:c.name,area:c.area,salesRep:c.salesRep,active:allQcGrades[k]?.active!==false,grade:allQcGrades[k]?.grade,region:allQcGrades[k]?.region,qcBarista:allQcGrades[k]?.barista}));
+    content=toCsv(rows,['id','name','area','salesRep','active','grade','region','qcBarista']);name='taresso_clients.csv';
+  } else {
+    content=JSON.stringify({sales:allSalesLogs,clients:allClients,qcGrades:allQcGrades},null,1);name='taresso_sales_export.json';type='application/json';
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+  toast('⬇ '+name);
+};
 
 function renderTeam(){
   const salespeople=USERS.filter(u=>u.role==='sales');
