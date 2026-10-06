@@ -808,6 +808,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
     <div class="tab"        id="qtFilters"  onclick="qcTab('filters')">💧 Φίλτρα</div>
     <div class="tab"        id="qtLog"      onclick="qcTab('log')">+ Φίλτρο</div>
     <div class="tab"        id="qtHistory"  onclick="qcTab('history')">Ιστορικό</div>
+    <div class="tab"        id="qtReport"   onclick="qcTab('report')">📊 Αναφορές</div>
     <div class="tab"        id="qtClients"  onclick="qcTab('clients')">👥 Πελάτες</div>
   </div>
 
@@ -825,6 +826,9 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;" id="qcStatusSummary"></div>
       <!-- Issues feed -->
       <div id="qcIssuesFeed"></div>
+      <!-- Resolved issues history -->
+      <div class="feed-title" style="margin-top:24px;">✓ Ιστορικό Επιλυμένων Προβλημάτων</div>
+      <div id="qcResolvedFeed"></div>
     </main>
   </div>
 
@@ -899,6 +903,18 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
   </div>
 </div>
 
+  <!-- QC REPORT -->
+  <div id="qc-report" style="display:none">
+    <main>
+      <div class="stitle">Αναφορές</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div class="fchip active" id="qrBtnWeek" onclick="setQcReportMode('week')">📅 Εβδομάδα ανά barista</div>
+        <div class="fchip" id="qrBtnFilters" onclick="setQcReportMode('filters')">💧 Χωρίς φίλτρα νερού</div>
+      </div>
+      <div id="qcReportBody"></div>
+    </main>
+  </div>
+
   <!-- QC CLIENTS -->
   <div id="qc-clients" style="display:none">
     <main>
@@ -971,7 +987,13 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div class="fchip" onclick="setQvType('training',this)">🎓 Εκπαίδευση</div>
         <div class="fchip" onclick="setQvType('install',this)">🔧 Εγκατάσταση</div>
         <div class="fchip" onclick="setQvType('filter',this)">💧 Αλλαγή φίλτρου</div>
+        <div class="fchip" onclick="setQvType('other',this)">📝 ΛΟΙΠΕΣ ΕΡΓΑΣΙΕΣ</div>
+        <div class="fchip" onclick="setQvType('replace_equipment',this)">🔄 ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΕΞΟΠΛΙΣΜΟΥ</div>
       </div>
+    </div>
+    <div class="field" id="qvReasonWrap" style="display:none;">
+      <label id="qvReasonLabel">Τι κάνατε και πού</label>
+      <textarea id="qvReason" placeholder=""></textarea>
     </div>
     <div class="field">
       <label>Barista υπεύθυνος</label>
@@ -1014,7 +1036,13 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div class="fchip" onclick="setEditType('training',this)">🎓 Εκπαίδευση</div>
         <div class="fchip" onclick="setEditType('install',this)">🔧 Εγκατάσταση</div>
         <div class="fchip" onclick="setEditType('filter',this)">💧 Αλλαγή φίλτρου</div>
+        <div class="fchip" onclick="setEditType('other',this)">📝 ΛΟΙΠΕΣ ΕΡΓΑΣΙΕΣ</div>
+        <div class="fchip" onclick="setEditType('replace_equipment',this)">🔄 ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΕΞΟΠΛΙΣΜΟΥ</div>
       </div>
+    </div>
+    <div class="field" id="editReasonWrap" style="display:none;">
+      <label id="editReasonLabel">Τι κάνατε και πού</label>
+      <textarea id="editReason"></textarea>
     </div>
     <div class="field">
       <label>Barista υπεύθυνος</label>
@@ -1443,6 +1471,7 @@ invRef.on('value',snap=>{sharedInvItems=snap.val()||{};});
 productsRef.on('value',snap=>{ allProductsCatalog=snap.val()||{}; });
 qcGradesRef.on('value',snap=>{
   allQcGrades=snap.val()||{};
+  setTimeout(()=>{try{ensureQcAutoVisits();}catch(e){}},2500);
   renderQcClients();
 });
 qcIssuesRef.on('value',snap=>{
@@ -1451,6 +1480,7 @@ qcIssuesRef.on('value',snap=>{
 });
 qcScheduleRef.on('value',snap=>{
   allQcSchedule=snap.val()||{};
+  setTimeout(()=>{try{ensureQcAutoVisits();}catch(e){}},1500);
   if(document.getElementById('qcSection')?.style.display!=='none') renderQcSchedule();
   if(document.getElementById('salesSection')?.style.display!=='none') renderQcVisitsForSalesRep();
 });
@@ -1851,11 +1881,11 @@ window.qcTab=(tab)=>{
   // Hide clients tab for non-managers
   const qtClients=document.getElementById('qtClients');
   if(qtClients) qtClients.style.display=canManageQcClients(currentUser)?'':'none';
-  ['dash','schedule','filters','log','history','clients'].forEach(t=>{
+  ['dash','schedule','filters','log','history','report','clients'].forEach(t=>{
     const sec=document.getElementById('qc-'+t);
     if(sec) sec.style.display=t===tab?'':'none';
     // map tab id
-    const idMap={schedule:'qtSchedule',filters:'qtFilters',log:'qtLog',history:'qtHistory'};
+    const idMap={schedule:'qtSchedule',filters:'qtFilters',log:'qtLog',history:'qtHistory',report:'qtReport'};
     const el=document.getElementById(idMap[t]);
     if(el) el.classList.toggle('active',t===tab);
   });
@@ -1866,6 +1896,7 @@ window.qcTab=(tab)=>{
   if(tab==='filters') renderQcDash();
   if(tab==='log') initQcLog();
   if(tab==='history') renderQcHistory();
+  if(tab==='report') renderQcReport();
 };
 
 // ── QC SCHEDULE ──
@@ -1875,7 +1906,32 @@ const QC_VISIT_TYPES = {
   training:{label:'Εκπαίδευση',         icon:'🎓', col:'var(--purple)'},
   install: {label:'Εγκατάσταση',        icon:'🔧', col:'var(--gold)'},
   filter:  {label:'Αλλαγή φίλτρου',    icon:'💧', col:'var(--green)'},
+  other:   {label:'ΛΟΙΠΕΣ ΕΡΓΑΣΙΕΣ',    icon:'📝', col:'var(--text2)'},
+  replace_equipment:{label:'ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΕΞΟΠΛΙΣΜΟΥ', icon:'🔄', col:'var(--red)'},
+  motor_oil_24:{label:'24shopen / Motor Oil', icon:'🏪', col:'var(--blue)'},
+  athens_plaza:{label:'Athens Plaza', icon:'🏨', col:'var(--blue)'},
+  event_motoroil:{label:'Event Motor Oil', icon:'🎪', col:'var(--blue)'},
+  province:{label:'Επαρχία', icon:'🗺️', col:'var(--blue)'},
 };
+const QC_STD_TYPE_IDS=['check','training','install','filter','other','replace_equipment'];
+function qcStdChipsHtml(fn){
+  return QC_STD_TYPE_IDS.map(id=>`<div class="fchip" onclick="${fn}('${id}',this)">${QC_VISIT_TYPES[id].icon} ${QC_VISIT_TYPES[id].label}</div>`).join('');
+}
+function qcReasonMeta(type){
+  if(type==='other') return {show:true,label:'Τι κάνατε και πού (υποχρεωτικό)',ph:'π.χ. δειγματισμός στο ..., επίσκεψη για δουλειά ...'};
+  if(type==='replace_equipment') return {show:true,label:'Λόγος αντικατάστασης εξοπλισμού (υποχρεωτικό)',ph:'π.χ. χάλασε ο μύλος, αντικαταστάθηκε με ...'};
+  return {show:false};
+}
+function updateQvReasonUI(){
+  const m=qcReasonMeta(qvType); const w=document.getElementById('qvReasonWrap'); if(!w) return;
+  w.style.display=m.show?'block':'none';
+  if(m.show){document.getElementById('qvReasonLabel').textContent=m.label;document.getElementById('qvReason').placeholder=m.ph;}
+}
+function updateEditReasonUI(){
+  const m=qcReasonMeta(editType); const w=document.getElementById('editReasonWrap'); if(!w) return;
+  w.style.display=m.show?'block':'none';
+  if(m.show) document.getElementById('editReasonLabel').textContent=m.label;
+}
 
 
 const QC_MACHINES = [
@@ -1929,6 +1985,111 @@ const VAGGELIS_TYPES = [
 ];
 const VAGGELIS_VIEWERS = ['Βαγγέλης QC','Διονύσης','Βασίλης','Λευτέρης Γούναρης'];
 let qvType = 'check';
+
+
+// ─── QC REPORTS (weekly per barista / clients without water filters) ───
+let qcReportMode='week', qcReportWeek=0;
+window.setQcReportMode=(m)=>{
+  qcReportMode=m;
+  document.getElementById('qrBtnWeek')?.classList.toggle('active',m==='week');
+  document.getElementById('qrBtnFilters')?.classList.toggle('active',m==='filters');
+  renderQcReport();
+};
+window.qcReportShift=(d)=>{ qcReportWeek=d===0?0:qcReportWeek+d; renderQcReport(); };
+function qcEffBaristas(ck){
+  const g=allQcGrades[ck]||{};
+  const main=g.barista||REGION_BARISTA[g.region]||'';
+  return [main,g.barista2,g.barista3].filter(Boolean);
+}
+function qcClientIsActive(ck){ return allQcGrades[ck]?.active!==false; }
+function renderQcReport(){
+  const body=document.getElementById('qcReportBody'); if(!body) return;
+  if(qcReportMode==='filters') return renderQcNoFilterReport(body);
+  const wk=getWeekDates(qcReportWeek);
+  const from=dateKey(wk[0]); const toD=new Date(wk[0]); toD.setDate(toD.getDate()+6); const to=dateKey(toD);
+  const visits=Object.entries(allQcSchedule).map(([k,v])=>({k,...v})).filter(v=>v.date>=from&&v.date<=to);
+  const done=visits.filter(v=>v.status==='done');
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <button class="btng" onclick="qcReportShift(-1)">‹</button>
+    <div style="text-align:center;"><div style="font-weight:600;">${wk[0].getDate()}/${wk[0].getMonth()+1} – ${toD.getDate()}/${toD.getMonth()+1}/${toD.getFullYear()}</div>
+    <div style="font-size:11px;color:var(--text3);cursor:pointer;" onclick="qcReportShift(0)">${qcReportWeek===0?'Αυτή την εβδομάδα':'↺ Τρέχουσα'}</div></div>
+    <button class="btng" onclick="qcReportShift(1)">›</button></div>`;
+  QC_BARISTAS.forEach(b=>{
+    const mine=done.filter(v=>(v.doneBy||v.barista)===b);
+    const pend=visits.filter(v=>v.status!=='done'&&v.barista===b);
+    const byGrade={A:0,B:0,C:0,'—':0}; const byType={};
+    const visitedKeys=new Set();
+    mine.forEach(v=>{
+      const g=allQcGrades[v.clientKey]?.grade; byGrade[g&&byGrade[g]!==undefined?g:'—']++;
+      const t=(QC_VISIT_TYPES[v.type]?.label)||v.type||'—'; byType[t]=(byType[t]||0)+1;
+      if(v.clientKey) visitedKeys.add(v.clientKey);
+    });
+    const assigned=Object.keys(allClients).filter(ck=>qcClientIsActive(ck)&&qcEffBaristas(ck).includes(b));
+    const missed=assigned.filter(ck=>!visitedKeys.has(ck)).sort((x,y)=>allClients[x].name.localeCompare(allClients[y].name,'el'));
+    const gTxt=['A','B','C'].filter(g=>byGrade[g]).map(g=>`${byGrade[g]} κατηγορίας ${QC_GRADES[g].label}`).concat(byGrade['—']?[`${byGrade['—']} χωρίς κατηγορία`]:[]).join(', ');
+    const tTxt=Object.entries(byType).map(([t,n])=>`${n}× ${t}`).join(' · ');
+    html+=`<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-size:16px;font-weight:600;color:var(--gold);margin-bottom:4px;">👤 ${b}</div>
+      <div style="font-size:13px;color:var(--text);margin-bottom:4px;">Πήγε σε <strong>${mine.length}</strong> καταστήματα/εργασίες${gTxt?` (${gTxt})`:''}${pend.length?` · ${pend.length} εκκρεμούν`:''}</div>
+      ${tTxt?`<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">${tTxt}</div>`:''}
+      ${mine.length?`<details style="margin-bottom:8px;"><summary style="font-size:12px;color:var(--blue);cursor:pointer;">Λίστα επισκέψεων (${mine.length})</summary>${mine.sort((x,y)=>x.date.localeCompare(y.date)).map(v=>`<div style="font-size:12px;color:var(--text2);padding:3px 0;">${v.date.slice(8)}/${v.date.slice(5,7)} · ${v.clientName||'—'} · ${(QC_VISIT_TYPES[v.type]?.label)||''}${v.reason?' — '+v.reason:''}</div>`).join('')}</details>`:''}
+      <details ${missed.length?'open':''}><summary style="font-size:12px;color:${missed.length?'var(--red)':'var(--green)'};cursor:pointer;">${missed.length?`Δεν πήγε σε ${missed.length} από τα ${assigned.length} καταστήματά του`:`✓ Πέρασε από όλα τα ${assigned.length} καταστήματά του`}</summary>
+      ${missed.map(ck=>`<div style="font-size:12px;color:var(--text2);padding:3px 0;">• ${allClients[ck].name}${allQcGrades[ck]?.grade?` <span style="color:${QC_GRADES[allQcGrades[ck].grade].col};">[${QC_GRADES[allQcGrades[ck].grade].label}]</span>`:''}</div>`).join('')}</details>
+    </div>`;
+  });
+  body.innerHTML=html;
+}
+function renderQcNoFilterReport(body){
+  const scheduledKeys=new Set(Object.values(allQcSchedule).map(v=>v.clientKey).filter(Boolean));
+  const noFilter=ck=>!(allQcFilters[ck]?.machines||[]).length;
+  const sortF=(a,b)=>allClients[a].name.localeCompare(allClients[b].name,'el');
+  const all=Object.keys(allClients).filter(ck=>qcClientIsActive(ck)&&noFilter(ck));
+  const inSched=all.filter(ck=>scheduledKeys.has(ck)).sort(sortF);
+  const others=all.filter(ck=>!scheduledKeys.has(ck)).sort(sortF);
+  const row=ck=>`<div style="font-size:13px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;"><span>${allClients[ck].name}${allClients[ck].area?` <span style="color:var(--text3);font-size:11px;">(${allClients[ck].area})</span>`:''}</span><span style="font-size:11px;color:var(--text3);">${allQcGrades[ck]?.barista||''}</span></div>`;
+  body.innerHTML=`<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+    <div style="font-size:15px;font-weight:600;color:var(--red);margin-bottom:8px;">💧 Στο πρόγραμμα χωρίς καταχωρημένο φίλτρο νερού (${inSched.length})</div>
+    ${inSched.map(row).join('')||'<div style="font-size:12px;color:var(--text3);">Όλα τα καταστήματα του προγράμματος έχουν φίλτρο ✓</div>'}</div>
+    <details style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;"><summary style="cursor:pointer;font-size:13px;color:var(--text2);">Υπόλοιποι ενεργοί πελάτες χωρίς φίλτρο (${others.length})</summary>${others.map(row).join('')}</details>`;
+}
+
+// ─── AUTO VISITS: 7th & 14th of each month ───
+const QC_AUTO_STORES=['Παπαδοπούλου','Hamarash','Μπρατσιακος','Τσουτσουδακη','Βαρνικος','Τσιαλτας','Ισαλλαρι'];
+function qcNorm(t){ return (t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ς/g,'σ'); }
+function qcAutoStem(n){ n=qcNorm(n); return n.length>6?n.slice(0,n.length-1):n; }
+let qcAutoRunning=false;
+function ensureQcAutoVisits(){
+  if(qcAutoRunning) return;
+  if(!currentUser||!['admin','qc_mgr'].includes(currentUser.role)) return;
+  if(!Object.keys(allClients).length||!Object.keys(allQcGrades).length) return;
+  qcAutoRunning=true;
+  const today=new Date(); today.setHours(12,0,0,0);
+  const targets=[];
+  for(let off=0;off<=1;off++){
+    [7,14].forEach(day=>{
+      const d=new Date(today.getFullYear(),today.getMonth()+off,day,12);
+      const wd=d.getDay(); if(wd===6) d.setDate(d.getDate()+2); else if(wd===0) d.setDate(d.getDate()+1);
+      const diff=(d-today)/86400000;
+      if(diff>=-1&&diff<=14) targets.push({base:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,date:dateKey(d)});
+    });
+  }
+  const refAuto=db.ref('taresso_qc_autogen');
+  Promise.all(targets.map(t=>refAuto.child(t.base).transaction(cur=>cur?undefined:{at:Date.now(),by:currentUser.name}).then(r=>({t,committed:r.committed})))).then(res=>{
+    res.filter(r=>r.committed).forEach(({t})=>{
+      QC_AUTO_STORES.forEach(name=>{
+        const stem=qcAutoStem(name);
+        Object.entries(allClients).forEach(([ck,c])=>{
+          if(!qcNorm(c.name).includes(stem)) return;
+          if(allQcGrades[ck]?.active===false) return;
+          qcScheduleRef.push({date:t.date,clientKey:ck,clientName:c.name,type:'check',
+            barista:allQcGrades[ck]?.barista||'',notes:'Αυτόματη επίσκεψη (7/14 του μήνα)',
+            rating:null,status:'pending',auto:true,createdBy:'auto',createdAt:Date.now()});
+        });
+      });
+    });
+    qcAutoRunning=false;
+  }).catch(()=>{qcAutoRunning=false;});
+}
 
 function getWeekDates(offset){
   const now=new Date();
@@ -2011,7 +2172,7 @@ function renderQcSchedule(){
     const dk=dateKey(d);
     const isToday=dk===todayKey;
     const isSel=dk===qcSelectedDay;
-    const visits=Object.values(allQcSchedule).filter(v=>v.date===dk&&(isManager||v.barista===currentUser?.name));
+    const visits=Object.values(allQcSchedule).filter(v=>v.date===dk&&(isManager||canSeeQC(currentUser)));
     const allDone=visits.length>0&&visits.every(v=>v.status==='done');
     const hasPending=visits.some(v=>v.status!=='done');
     const dotClass=allDone?'has-done':hasPending?'has-visits':'';
@@ -2025,7 +2186,7 @@ function renderQcSchedule(){
     const dk=dateKey(d);
     const isToday=dk===todayKey;
     const isSel=dk===qcSelectedDay;
-    const visits=Object.values(allQcSchedule).filter(v=>v.date===dk&&(isManager||v.barista===currentUser?.name));
+    const visits=Object.values(allQcSchedule).filter(v=>v.date===dk&&(isManager||canSeeQC(currentUser)));
     const allDone=visits.length>0&&visits.every(v=>v.status==='done');
     const hasPending=visits.some(v=>v.status!=='done');
     const dotClass=allDone?'has-done':hasPending?'has-visits':'';
@@ -2058,7 +2219,7 @@ function selectQcDay(dk){
 function renderQcDayVisits(isManager){
   const dayVisits=Object.entries(allQcSchedule)
     .filter(([,v])=>v.date===qcSelectedDay)
-    .filter(([,v])=>isManager||v.barista===currentUser?.name);
+    .filter(([,v])=>isManager||canSeeQC(currentUser));
 
   // Day header
   const d=new Date(qcSelectedDay+'T12:00:00');
@@ -2093,9 +2254,11 @@ function renderQcDayVisits(isManager){
             <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">👤 ${v.barista||'—'}</div>
             ${isDone&&v.rating?`<div style="margin-bottom:6px;">${Array.from({length:5},(_,i)=>`<span style="font-size:16px;color:${i<v.rating?'var(--gold)':'var(--border2)'};">★</span>`).join('')}<span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:4px;">${v.rating}/5 — ${RATING_LABELS[v.rating]||''}</span></div>`:''}
             ${isDone&&v.actions&&v.actions.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">${v.actions.map(aid=>{const a=QC_ACTIONS.find(x=>x.id===aid);return a?`<span style="font-size:10px;background:rgba(90,170,122,0.12);border:1px solid rgba(90,170,122,0.3);border-radius:4px;padding:2px 6px;color:var(--green);">${a.icon} ${a.label}</span>`:''}).join('')}</div>`:''}
+            ${v.reason?`<div style="font-size:12px;color:var(--text);background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:8px 10px;margin-bottom:6px;word-break:break-word;">📝 ${v.reason}</div>`:''}
+            ${isDone&&v.doneBy&&v.doneBy!==v.barista?`<div style="font-size:11px;color:var(--green);margin-bottom:6px;">✔ Έγινε από: ${v.doneBy}</div>`:''}
             ${v.notes?`<div style="font-size:12px;color:var(--text2);background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:6px;word-break:break-word;">💬 ${v.notes}</div>`:''}
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${isManager&&!isDone?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button><button class="qfc-mbtn" style="color:var(--red);border-color:rgba(192,80,80,0.3);" onclick="deleteQcVisit('${vk}')">✕ Διαγραφή</button>`:(!isDone&&v.barista===currentUser?.name?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button>`:'')}
+              ${isManager&&!isDone?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button><button class="qfc-mbtn" style="color:var(--red);border-color:rgba(192,80,80,0.3);" onclick="deleteQcVisit('${vk}')">✕ Διαγραφή</button>`:(!isDone&&canSeeQC(currentUser)?`<button class="qfc-mbtn" style="color:var(--blue);border-color:rgba(106,168,208,0.3);" onclick="openEditVisit('${vk}')">✎ Επεξεργασία</button>`:'')}
               ${isDone&&isManager?`<button class="qfc-mbtn" style="color:var(--red);border-color:rgba(192,80,80,0.3);" onclick="deleteQcVisit('${vk}')">✕ Διαγραφή</button>`:''}
             </div>
           </div>
@@ -2144,6 +2307,7 @@ window.setEditType=(type,el)=>{
   editType=type;
   document.querySelectorAll('#editTypeWrap .fchip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
+  updateEditReasonUI();
 };
 
 // populate region dropdown in visit form
@@ -2167,7 +2331,7 @@ window.filterQvClients=()=>{
     const matchSearch=!search||c.name.toLowerCase().includes(search)||(c.area||'').toLowerCase().includes(search);
     // non-managers see only their assigned clients (barista1 or barista2)
     const myName=currentUser?.name||'';
-    const matchBarista=isManager||(grades.barista===myName||grades.barista2===myName);
+    const matchBarista=true; // κάθε μέλος QC βλέπει όλους τους πελάτες
     return matchRegion&&matchSearch&&matchBarista;
   });
   const prev=sel.value;
@@ -2175,7 +2339,7 @@ window.filterQvClients=()=>{
     filtered.map(([k,c])=>`<option value="${k}" data-name="${c.name}">${c.name}${c.area?' ('+c.area+')':''}</option>`).join('');
   if(prev) sel.value=prev;
   // auto-select barista based on region
-  if(region && REGION_BARISTA[region]){
+  if(region && REGION_BARISTA[region] && currentUser?.role!=='qc'){
     const bsel=document.getElementById('qvBarista');
     if(bsel) bsel.value=REGION_BARISTA[region];
     onBaristaChange();
@@ -2194,6 +2358,8 @@ window.openEditVisit=(key)=>{
   bsel.innerHTML=QC_BARISTAS.map(b=>`<option value="${b}" ${b===v.barista?'selected':''}>${b}</option>`).join('');
   // type
   editType=v.type||'check';
+  document.getElementById('editReason').value=v.reason||'';
+  updateEditReasonUI();
   document.querySelectorAll('#editTypeWrap .fchip').forEach(c=>{
     const t=c.getAttribute('onclick').match(/'(\w+)'/)?.[1];
     c.classList.toggle('active',t===editType);
@@ -2214,7 +2380,11 @@ window.closeEditVisit=()=>document.getElementById('qcEditOverlay').classList.rem
 window.saveEditVisit=()=>{
   const key=document.getElementById('editVisitKey').value;
   if(!key) return;
+  const rm=qcReasonMeta(editType);
+  const editReason=document.getElementById('editReason').value.trim();
+  if(rm.show&&!editReason){ toast('⚠ Συμπλήρωσε το πεδίο κειμένου'); return; }
   const updates={
+    reason:rm.show?editReason:null,
     date:document.getElementById('editDate').value,
     type:editType,
     barista:document.getElementById('editBarista').value,
@@ -2244,7 +2414,7 @@ window.openQcVisitFormDay=(dk)=>{
   // populate barista dropdown
   const bsel=document.getElementById('qvBarista');
   bsel.innerHTML=QC_BARISTAS.map(b=>`<option value="${b}">${b}</option>`).join('');
-  if(['qc','qc_mgr'].includes(currentUser?.role)) bsel.value=currentUser.name;
+  if(canSeeQC(currentUser)&&QC_BARISTAS.includes(currentUser.name)) bsel.value=currentUser.name;
   // reset type based on barista
   qvType='check';
   onBaristaChange();
@@ -2253,6 +2423,8 @@ window.openQcVisitFormDay=(dk)=>{
   document.querySelectorAll('.qv-star').forEach(s=>{s.style.opacity='0.3';s.style.color='var(--text3)';});
   document.getElementById('qvRatingLabel').textContent='';
   document.getElementById('qvNotes').value='';
+  const qr=document.getElementById('qvReason'); if(qr) qr.value='';
+  updateQvReasonUI();
   document.getElementById('qcVisitOverlay').classList.add('open');
 };
 
@@ -2271,6 +2443,7 @@ window.setQvType=(type,el)=>{
   qvType=type;
   document.querySelectorAll('#qvTypeWrap .fchip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
+  updateQvReasonUI();
 };
 
 window.onBaristaChange=()=>{
@@ -2287,13 +2460,9 @@ window.onBaristaChange=()=>{
   } else {
     // show standard types
     const current=qvType;
-    wrap.innerHTML=`
-      <div class="fchip" onclick="setQvType('check',this)">🔍 Ποιοτικός έλεγχος</div>
-      <div class="fchip" onclick="setQvType('training',this)">🎓 Εκπαίδευση</div>
-      <div class="fchip" onclick="setQvType('install',this)">🔧 Εγκατάσταση</div>
-      <div class="fchip" onclick="setQvType('filter',this)">💧 Αλλαγή φίλτρου</div>`;
+    wrap.innerHTML=qcStdChipsHtml('setQvType');
     // restore active if valid
-    const std=['check','training','install','filter'];
+    const std=QC_STD_TYPE_IDS;
     const activeType=std.includes(current)?current:'check';
     qvType=activeType;
     wrap.querySelectorAll('.fchip').forEach(c=>{
@@ -2301,6 +2470,7 @@ window.onBaristaChange=()=>{
       c.classList.toggle('active',t===activeType);
     });
   }
+  updateQvReasonUI();
 };
 
 window.closeQcVisitForm=()=>document.getElementById('qcVisitOverlay').classList.remove('open');
@@ -2312,8 +2482,12 @@ window.saveQcVisit=()=>{
   const clientName=clientSel.options[clientSel.selectedIndex]?.dataset?.name||clientSel.options[clientSel.selectedIndex]?.text||'';
   const barista=document.getElementById('qvBarista').value;
   const notes=document.getElementById('qvNotes').value.trim();
-  if(!date||!clientKey||!barista){ toast('⚠ Συμπλήρωσε όλα τα πεδία'); return; }
-  qcScheduleRef.push({date,clientKey,clientName,type:qvType,barista,notes,
+  const rm=qcReasonMeta(qvType);
+  const reason=(document.getElementById('qvReason')?.value||'').trim();
+  const clientOptional=qvType==='other';
+  if(!date||!barista||(!clientKey&&!clientOptional)){ toast('⚠ Συμπλήρωσε όλα τα πεδία'); return; }
+  if(rm.show&&!reason){ toast('⚠ Συμπλήρωσε το πεδίο κειμένου'); return; }
+  qcScheduleRef.push({date,clientKey:clientKey||'',clientName:clientKey?clientName:'(Χωρίς πελάτη)',type:qvType,barista,notes,reason:rm.show?reason:'',
     rating:qvRating||null,status:'pending',
     createdBy:currentUser.name,createdAt:Date.now()});
   closeQcVisitForm();
@@ -2430,7 +2604,7 @@ function renderQcDash(){
       const label=filterStatusLabel(days);
       if(days!==null&&days<=14) alerts.push({client:cl.name,machine:m.name,days,label});
       machinesHtml+=`<div class="qfc-machine">
-        <span class="qfc-mname">🔧 ${m.name||'Μηχανή '+(i+1)}</span>
+        <span class="qfc-mname">🔧 ${m.name||'Μηχανή '+(i+1)}${m.filterDate?` <span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;">· μπήκε ${new Date(m.filterDate).toLocaleDateString('el-GR')}</span>`:''}</span>
         <span class="qfc-mdate ${st}">${label}</span>
         <button class="qfc-mbtn" onclick="openQcMachineEdit('${ck}',${i})">Ενημέρωση</button>
       </div>`;
@@ -2940,24 +3114,26 @@ function renderQcVisitsForSalesRep(){
   const feedEl=document.getElementById('dashQcFeed');
   const titleEl=document.getElementById('dashQcFeedTitle');
   if(!feedEl||!titleEl) return;
+  if(!canSeeSales(u)){ titleEl.style.display='none'; feedEl.innerHTML=''; return; }
   const isSalesManager=['admin','sales_mgr'].includes(u?.role);
-  // find clientKeys belonging to this sales rep (or all if manager)
   const myClientKeys=Object.entries(allClients)
     .filter(([,c])=>isSalesManager||c.salesRep===u?.name)
     .map(([ck])=>ck);
-  if(!myClientKeys.length){
-    titleEl.style.display='none';
-    feedEl.innerHTML='';
-    return;
-  }
+
   titleEl.style.display='';
   titleEl.textContent=isSalesManager?'🔍 Επισκέψεις QC στους πελάτες':'🔍 Επισκέψεις QC στους πελάτες μου';
+
+  if(!myClientKeys.length){
+    feedEl.innerHTML=`<div class="empty"><div class="ei">◌</div>Δεν έχεις ακόμα πελάτες καταχωρημένους στο QC με το όνομά σου ως πωλητή</div>`;
+    return;
+  }
+
   const visits=Object.values(allQcSchedule)
     .filter(v=>v.status==='done'&&myClientKeys.includes(v.clientKey))
     .sort((a,b)=>(b.doneAt||0)-(a.doneAt||0))
     .slice(0,8);
-  const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν επισκέψεις QC ακόμα</div>`;
-  const QCT={check:'🔍 Ποιοτικός έλεγχος',training:'🎓 Εκπαίδευση',install:'🔧 Εγκατάσταση',filter:'💧 Αλλαγή φίλτρου',motor_oil_24:'🏪 24shopen/Motor Oil',athens_plaza:'🏨 Athens Plaza',event_motoroil:'🎪 Event Motor Oil',province:'🗺️ Επαρχία'};
+  const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν ολοκληρωμένες επισκέψεις QC ακόμα (${myClientKeys.length} πελάτες σου στο QC)</div>`;
+  const QCT={check:'🔍 Ποιοτικός έλεγχος',training:'🎓 Εκπαίδευση',install:'🔧 Εγκατάσταση',filter:'💧 Αλλαγή φίλτρου',other:'📝 ΛΟΙΠΕΣ ΕΡΓΑΣΙΕΣ',replace_equipment:'🔄 ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΕΞΟΠΛΙΣΜΟΥ',motor_oil_24:'🏪 24shopen/Motor Oil',athens_plaza:'🏨 Athens Plaza',event_motoroil:'🎪 Event Motor Oil',province:'🗺️ Επαρχία'};
   feedEl.innerHTML=visits.length?visits.map(v=>{
     const dt=v.doneAt?new Date(v.doneAt).toLocaleDateString('el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):v.date||'';
     return `<div class="feed-item" style="align-items:flex-start;">
@@ -3595,6 +3771,34 @@ function renderQcDashboard(){
       </div>
     </div>`;
   }).join('');
+
+  // ── Resolved issues history ──
+  const resolvedEl=document.getElementById('qcResolvedFeed');
+  if(resolvedEl){
+    const resolved=Object.entries(allQcIssues)
+      .filter(([,i])=>i.status==='resolved')
+      .sort((a,b)=>(b[1].resolvedAt||0)-(a[1].resolvedAt||0))
+      .slice(0,15);
+    const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν επιλυμένα προβλήματα ακόμα</div>`;
+    resolvedEl.innerHTML=resolved.length?resolved.map(([ik,issue])=>{
+      const st=QC_STATUS[issue.severity]||QC_STATUS.watch;
+      const createdD=issue.createdAt?new Date(issue.createdAt).toLocaleDateString('el-GR',{day:'numeric',month:'short'}):'';
+      const resolvedD=issue.resolvedAt?new Date(issue.resolvedAt).toLocaleDateString('el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div style="background:rgba(90,170,122,0.05);border:1px solid rgba(90,170,122,0.2);border-radius:12px;padding:14px 16px;margin-bottom:8px;opacity:0.85;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+          <span style="font-size:14px;">${st.icon}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text3);text-decoration:line-through;">${st.label}</span>
+          <span style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-left:auto;">✓ Επιλύθηκε</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px;">${issue.clientName||'—'}</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">📝 ${issue.description||'—'}</div>
+        <div style="font-size:11px;color:var(--text3);display:flex;gap:10px;flex-wrap:wrap;">
+          <span>👤 Αναφορά: ${issue.barista||'—'} · ${createdD}</span>
+          <span>✓ Επίλυση: ${issue.resolvedBy||'—'} · ${resolvedD}</span>
+        </div>
+      </div>`;
+    }).join(''):empty;
+  }
 }
 
 window.resolveQcIssue=(ik)=>{
@@ -3626,7 +3830,8 @@ function renderQcClients(){
     const active=allQcGrades[ck]?.active!==false;
     const visits=Object.values(allQcSchedule).filter(v=>v.clientKey===ck&&v.status==='done');
     const lastVisit=visits.sort((a,b)=>b.doneAt-a.doneAt)[0];
-    const assignedBarista=allQcGrades[ck]?.barista||QC_BARISTAS[0]||'';
+    const assignedBarista=allQcGrades[ck]?.barista||REGION_BARISTA[allQcGrades[ck]?.region]||'';
+    const assignedBarista3=allQcGrades[ck]?.barista3||'';
     const assignedBarista2=allQcGrades[ck]?.barista2||'';
     const eq=allQcGrades[ck]?.equipment||{};
     const clientIssues=Object.values(allQcIssues).filter(i=>i.clientKey===ck&&i.status==='open');
@@ -3651,12 +3856,18 @@ function renderQcClients(){
           <button onclick="openClientHistory('${ck}')" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(106,168,208,0.4);background:rgba(106,168,208,0.08);color:var(--blue);cursor:pointer;font-size:12px;font-weight:600;">📋 Ιστορικό (${clientVisits.length})</button>
           <select onchange="setQcBarista('${ck}',this.value)"
             style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
+            <option value="">— Barista —</option>
             ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista?'selected':''}>${b}</option>`).join('')}
           </select>
           <select onchange="setQcBarista2('${ck}',this.value)" title="2ος Barista"
             style="background:var(--s2);border:1px solid rgba(106,168,208,0.3);color:${assignedBarista2?'var(--blue)':'var(--text3)'};padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
             <option value="">+2ος</option>
             ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista2?'selected':''}>${b}</option>`).join('')}
+          </select>
+          <select onchange="setQcBarista3('${ck}',this.value)" title="3ος Barista"
+            style="background:var(--s2);border:1px solid rgba(106,168,208,0.3);color:${assignedBarista3?'var(--blue)':'var(--text3)'};padding:6px 8px;border-radius:8px;font-size:12px;cursor:pointer;">
+            <option value="">+3ος</option>
+            ${QC_BARISTAS.map(b=>`<option value="${b}" ${b===assignedBarista3?'selected':''}>${b}</option>`).join('')}
           </select>
           ${['A','B','C'].map(g=>`<button onclick="setQcGrade('${ck}','${g}')"
             style="width:30px;height:30px;border-radius:7px;border:2px solid ${grade===g?QC_GRADES[g].col:'var(--border)'};
@@ -3668,6 +3879,7 @@ function renderQcClients(){
             background:${active?'rgba(90,170,122,0.08)':'rgba(192,80,80,0.08)'};
             color:${active?'var(--green)':'var(--red)'};cursor:pointer;font-size:11px;font-family:monospace;">
             ${active?'✓ Ενεργός':'✗ Ανενεργός'}</button>
+          <button onclick="deleteQcClient('${ck}')" title="Διαγραφή πελάτη" style="padding:5px 9px;border-radius:7px;border:1px solid rgba(192,80,80,0.4);background:transparent;color:var(--red);cursor:pointer;font-size:11px;">🗑</button>
         </div>
       </div>
       <!-- Equipment row -->
@@ -3744,6 +3956,17 @@ window.setQcRegion=(ck,region)=>{
   toast('✓ Περιοχή: '+(region||'—'));
 };
 
+window.setQcBarista3=(ck,b3)=>{
+  qcGradesRef.child(ck).update({barista3:b3||null});
+  toast(b3?`✓ 3ος Barista: ${b3}`:'✓ 3ος Barista αφαιρέθηκε');
+};
+window.deleteQcClient=(ck)=>{
+  const n=allClients[ck]?.name||'';
+  if(!confirm('Οριστική διαγραφή του πελάτη "'+n+'" και των εκκρεμών επισκέψεών του;')) return;
+  Object.entries(allQcSchedule).forEach(([vk,v])=>{ if(v.clientKey===ck&&v.status!=='done') qcScheduleRef.child(vk).remove(); });
+  clientsRef.child(ck).remove(); qcGradesRef.child(ck).remove(); qcRef.child(ck).remove();
+  toast('🗑 Διαγράφηκε: '+n); setTimeout(renderQcClients,600);
+};
 window.setQcBarista2=(ck,barista2)=>{
   qcGradesRef.child(ck).update({barista2:barista2||null});
   toast(barista2?`✓ 2ος Barista: ${barista2}`:'✓ 2ος Barista αφαιρέθηκε');
@@ -4282,7 +4505,7 @@ window.openClientHistory=(ck)=>{
     <div class="sstat" style="padding:12px;"><div class="sstat-label">Επισκέψεις</div><div class="sstat-val" style="color:var(--blue);font-size:24px;">${done.length}</div><div class="sstat-sub">ολοκληρωμένες</div></div>
     <div class="sstat" style="padding:12px;"><div class="sstat-label">Εκκρεμείς</div><div class="sstat-val" style="color:var(--gold);font-size:24px;">${pending.length}</div><div class="sstat-sub">προγραμματισμένες</div></div>
     <div class="sstat" style="padding:12px;"><div class="sstat-label">Μέση βαθμολογία</div><div class="sstat-val" style="color:var(--gold);font-size:24px;">${avgRating||'—'}</div><div class="sstat-sub">${avgRating?'/ 5 ⭐':''}</div></div>`;
-  const QCT={check:'🔍 Ποιοτικός',training:'🎓 Εκπαίδευση',install:'🔧 Εγκατάσταση',filter:'💧 Φίλτρο',motor_oil_24:'🏪 24shopen',athens_plaza:'🏨 Athens Plaza',event_motoroil:'🎪 Event',province:'🗺️ Επαρχία'};
+  const QCT={check:'🔍 Ποιοτικός',training:'🎓 Εκπαίδευση',install:'🔧 Εγκατάσταση',filter:'💧 Φίλτρο',other:'📝 Λοιπές εργασίες',replace_equipment:'🔄 Αντικ. εξοπλισμού',motor_oil_24:'🏪 24shopen',athens_plaza:'🏨 Athens Plaza',event_motoroil:'🎪 Event',province:'🗺️ Επαρχία'};
   const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν επισκέψεις</div>`;
   document.getElementById('clientHistoryFeed').innerHTML=allVisits.length?allVisits.map(v=>{
     const isDone=v.status==='done';
@@ -4387,4 +4610,4 @@ if(document.readyState==='loading'){
   </div>
 </div>
 </body>
-</html,
+</html>
