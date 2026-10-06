@@ -617,8 +617,10 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div id="salesStats" style="margin-bottom:16px;"></div>
         <div class="feed-title" id="dashInstallFeedTitle" style="display:none;margin-top:20px;"></div>
         <div id="dashInstallFeed"></div>
-        <div class="feed-title" id="dashQcFeedTitle" style="margin-top:20px;">🔍 Επισκέψεις QC στους πελάτες μου</div>
-        <div id="dashQcFeed"></div>
+        <div onclick="toggleDashQc()" id="dashQcBtn" style="cursor:pointer;background:var(--s1);border:2px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:4px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:14px;font-weight:600;color:var(--text);">🔍 Επισκέψεις Quality</span><span id="dashQcArrow" style="font-size:11px;color:var(--text3);">▼ άνοιγμα</span></div>
+        <div class="feed-title" id="dashQcFeedTitle" style="margin-top:14px;display:none;">🔍 Επισκέψεις QC στους πελάτες μου</div>
+        <div id="dashQcFeed" style="display:none;"></div>
         <div class="feed-title" id="salesFeedTitle" style="margin-top:20px"></div>
         <div id="salesFeed"></div>
       </main>
@@ -901,7 +903,6 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <div id="qcHistoryFeed"></div>
     </main>
   </div>
-</div>
 
   <!-- QC REPORT -->
   <div id="qc-report" style="display:none">
@@ -1166,6 +1167,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
       <button class="btn" onclick="saveQcMachineEntry()">Αποθήκευση</button>
     </div>
   </div>
+</div>
 </div>
 
 <!-- ══ SERVICE SECTION ══ -->
@@ -3176,18 +3178,26 @@ function renderSalesDash(){
   renderQcVisitsForSalesRep();
 }
 
+let dashQcOpen=false;
+window.toggleDashQc=()=>{
+  dashQcOpen=!dashQcOpen;
+  const a=document.getElementById('dashQcArrow'); if(a) a.textContent=dashQcOpen?'▲ κλείσιμο':'▼ άνοιγμα';
+  const b=document.getElementById('dashQcBtn'); if(b) b.style.borderColor=dashQcOpen?'var(--blue)':'var(--border)';
+  renderQcVisitsForSalesRep();
+};
 function renderQcVisitsForSalesRep(){
   const u=currentUser;
   const feedEl=document.getElementById('dashQcFeed');
   const titleEl=document.getElementById('dashQcFeedTitle');
   if(!feedEl||!titleEl) return;
   if(!canSeeSales(u)){ titleEl.style.display='none'; feedEl.innerHTML=''; return; }
+  const qcOpen=dashQcOpen;
   const isSalesManager=['admin','sales_mgr'].includes(u?.role);
   const myClientKeys=Object.entries(allClients)
     .filter(([,c])=>isSalesManager||c.salesRep===u?.name)
     .map(([ck])=>ck);
 
-  titleEl.style.display='';
+  titleEl.style.display=qcOpen?'':'none'; feedEl.style.display=qcOpen?'':'none';
   titleEl.textContent=isSalesManager?'🔍 Επισκέψεις QC στους πελάτες':'🔍 Επισκέψεις QC στους πελάτες μου';
 
   if(!myClientKeys.length){
