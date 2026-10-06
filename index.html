@@ -614,7 +614,7 @@ main{padding:24px 20px;max-width:900px;margin:0 auto;width:100%;}
         <div class="stitle" id="salesWelcome"></div>
         <div class="ssub" id="salesPeriod"></div>
         <div id="installNotifPanel"></div>
-        <div class="sales-stats" id="salesStats"></div>
+        <div id="salesStats" style="margin-bottom:16px;"></div>
         <div class="feed-title" id="dashInstallFeedTitle" style="display:none;margin-top:20px;"></div>
         <div id="dashInstallFeed"></div>
         <div class="feed-title" id="dashQcFeedTitle" style="margin-top:20px;">🔍 Επισκέψεις QC στους πελάτες μου</div>
@@ -3082,6 +3082,73 @@ function statCards(n, showPct=true){
     </div>`;
 }
 
+
+// ─── SALES STATS PANEL (range + drill-down: team → salesperson → entries) ───
+const SSTAT_METRICS=[
+  {id:'visit', icon:'🤝', label:'Επισκέψεις',    col:'var(--blue)'},
+  {id:'sample',icon:'☕', label:'Δειγματισμοί',  col:'var(--green)'},
+  {id:'deal',  icon:'✅', label:'Κλειστές δουλειές', col:'var(--gold)'},
+  {id:'install',icon:'🏪',label:'Νέες εγκαταστάσεις', col:'#c07ab0'},
+];
+let sstatPreset='month', sstatFrom='', sstatTo='', sstatMetric=null, sstatPerson=null;
+function sstatRange(){
+  const now=new Date(); const k=d=>dateKey(d); const n=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12);
+  if(sstatPreset==='today') return [k(n),k(n)];
+  if(sstatPreset==='week'){const m=getWeekDates(0)[0];const e=new Date(m);e.setDate(e.getDate()+6);return [k(m),k(e)];}
+  if(sstatPreset==='month') return [k(new Date(n.getFullYear(),n.getMonth(),1,12)),k(new Date(n.getFullYear(),n.getMonth()+1,0,12))];
+  if(sstatPreset==='prevmonth') return [k(new Date(n.getFullYear(),n.getMonth()-1,1,12)),k(new Date(n.getFullYear(),n.getMonth(),0,12))];
+  if(sstatPreset==='year') return [`${n.getFullYear()}-01-01`,`${n.getFullYear()}-12-31`];
+  if(sstatPreset==='custom') return [sstatFrom||'0000-00-00',sstatTo||'9999-99-99'];
+  return ['0000-00-00','9999-99-99'];
+}
+window.setSstatPreset=(p)=>{sstatPreset=p;sstatMetric=null;sstatPerson=null;renderSalesStatsPanel();};
+window.setSstatCustom=()=>{sstatFrom=document.getElementById('sstFrom').value;sstatTo=document.getElementById('sstTo').value;sstatPreset='custom';sstatMetric=null;sstatPerson=null;renderSalesStatsPanel();};
+window.openSstatMetric=(m)=>{sstatMetric=sstatMetric===m?null:m;sstatPerson=null;renderSalesStatsPanel();};
+window.openSstatPerson=(n)=>{sstatPerson=sstatPerson===n?null:n;renderSalesStatsPanel();};
+function renderSalesStatsPanel(){
+  const el=document.getElementById('salesStats'); if(!el) return;
+  const u=currentUser; if(!u) return;
+  const isManager=['admin','sales_mgr'].includes(u.role);
+  const [from,to]=sstatRange();
+  const logs=allSalesLogs.filter(e=>e.date&&e.date>=from&&e.date<=to&&(isManager||e.by===u.name));
+  const people=isManager?[...new Set([...USERS.filter(x=>x.role==='sales').map(x=>x.name),...logs.map(e=>e.by)])]:[u.name];
+  const presets=[['today','Σήμερα'],['week','Εβδομάδα'],['month','Μήνας'],['prevmonth','Προηγ. μήνας'],['year','Έτος'],['all','Όλα']];
+  let html=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${presets.map(([id,l])=>`<div class="fchip ${sstatPreset===id?'active':''}" onclick="setSstatPreset('${id}')">${l}</div>`).join('')}</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--text3);">
+    <span>Από</span><input type="date" id="sstFrom" value="${sstatPreset==='custom'?sstatFrom:(from[0]==='0'?'':from)}" onchange="setSstatCustom()" style="width:auto;padding:6px 8px;">
+    <span>έως</span><input type="date" id="sstTo" value="${sstatPreset==='custom'?sstatTo:(to[0]==='9'?'':to)}" onchange="setSstatCustom()" style="width:auto;padding:6px 8px;">
+  </div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">`+SSTAT_METRICS.map(m=>{
+    const n=logs.filter(e=>e.subtype===m.id).length; const act=sstatMetric===m.id;
+    const extra=m.id==='deal'?(()=>{const v=logs.filter(e=>e.subtype==='deal').reduce((a,e)=>a+(e.dealValue||0),0);return v?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${v.toLocaleString('el-GR')} €</div>`:''})():'';
+    return `<div onclick="openSstatMetric('${m.id}')" style="cursor:pointer;background:${act?'var(--s2)':'var(--s1)'};border:2px solid ${act?m.col:'var(--border)'};border-radius:12px;padding:16px;">
+      <div style="font-size:12px;color:var(--text3);">${m.icon} ${isManager?'Όλη η ομάδα · ':''}${m.label}</div>
+      <div style="font-size:34px;font-weight:700;color:${m.col};line-height:1.2;">${n}</div>${extra}
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;">${isManager?(act?'▲ κλείσιμο':'▼ ανά πωλητή'):(act?'▲ κλείσιμο':'▼ λίστα')}</div></div>`;
+  }).join('')+`</div>`;
+  if(sstatMetric){
+    const m=SSTAT_METRICS.find(x=>x.id===sstatMetric);
+    const ml=logs.filter(e=>e.subtype===m.id);
+    if(isManager){
+      html+=`<div style="font-size:12px;color:var(--text3);margin:4px 0 8px;">${m.icon} ${m.label} ανά πωλητή</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:12px;">`+people.map(pn=>{
+        const c=ml.filter(e=>e.by===pn).length; const act=sstatPerson===pn; const usr=uc(pn);
+        return `<div onclick="openSstatPerson('${pn.replace(/'/g,"\\'")}')" style="cursor:pointer;background:${act?usr.bg:'var(--s1)'};border:2px solid ${act?usr.col:'var(--border)'};border-radius:12px;padding:12px 14px;">
+          <div style="font-size:12px;color:var(--text2);">${pn}</div><div style="font-size:26px;font-weight:700;color:${usr.col};">${c}</div></div>`;}).join('')+`</div>`;
+    }
+    const target=isManager?(sstatPerson?ml.filter(e=>e.by===sstatPerson):null):ml;
+    if(target){
+      const sorted=[...target].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.ts||0)-(a.ts||0));
+      html+=`<div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${isManager?sstatPerson+' · ':''}${m.label} (${sorted.length}) — σημεία:</div>`+
+      (sorted.length?sorted.map(e=>`<div class="feed-item" style="align-items:flex-start;"><div style="width:8px;height:8px;border-radius:50%;background:${m.col};flex-shrink:0;margin-top:6px;"></div><div class="fbody" style="flex:1;min-width:0;">
+        <div class="fhdr"><span style="font-size:13px;font-weight:600;color:var(--text);">${e.client||e.business||'—'}</span><span class="ftime">${(e.date||'').split('-').reverse().join('/')}</span></div>
+        <div class="fdetail">${e.area?'📍 '+e.area:''}${e.dealValue?' · '+e.dealValue+' €':''}${e.dealProduct?' · '+e.dealProduct:''}</div>
+        ${e.notes?`<div style="font-size:11px;color:var(--text2);margin-top:3px;word-break:break-word;">💬 ${e.notes}</div>`:''}</div></div>`).join(''):`<div class="empty"><div class="ei">◌</div>Καμία καταχώρηση στο διάστημα</div>`);
+    }
+  }
+  el.innerHTML=html;
+}
+
 function renderSalesDash(){
   const u=currentUser;
   const isManager=['admin','sales_mgr'].includes(u.role);
@@ -3096,7 +3163,7 @@ function renderSalesDash(){
   const n=salesNums(myLogs,monthStr);
   document.getElementById('salesPeriod').textContent=
     `Τρέχων μήνας: ${n.mV+n.mS+n.mD} · Σύνολο: ${n.tV+n.tS+n.tD} καταχωρήσεις`;
-  document.getElementById('salesStats').innerHTML=statCards(n);
+  renderSalesStatsPanel();
   document.getElementById('salesFeedTitle').textContent=isManager?'Πρόσφατη δραστηριότητα ομάδας':'Πρόσφατες καταχωρήσεις μου';
   const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν καταχωρήσεις</div>`;
   document.getElementById('salesFeed').innerHTML=myLogs.length?myLogs.slice(0,6).map(buildSalesItem).join(''):empty;
