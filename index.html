@@ -2034,7 +2034,7 @@ function renderQcReport(){
       ${tTxt?`<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">${tTxt}</div>`:''}
       ${mine.length?`<details style="margin-bottom:8px;"><summary style="font-size:12px;color:var(--blue);cursor:pointer;">Λίστα επισκέψεων (${mine.length})</summary>${mine.sort((x,y)=>x.date.localeCompare(y.date)).map(v=>`<div style="font-size:12px;color:var(--text2);padding:3px 0;">${v.date.slice(8)}/${v.date.slice(5,7)} · ${v.clientName||'—'} · ${(QC_VISIT_TYPES[v.type]?.label)||''}${v.reason?' — '+v.reason:''}</div>`).join('')}</details>`:''}
       <details ${missed.length?'open':''}><summary style="font-size:12px;color:${missed.length?'var(--red)':'var(--green)'};cursor:pointer;">${missed.length?`Δεν πήγε σε ${missed.length} από τα ${assigned.length} καταστήματά του`:`✓ Πέρασε από όλα τα ${assigned.length} καταστήματά του`}</summary>
-      ${missed.map(ck=>`<div style="font-size:12px;color:var(--text2);padding:3px 0;">• ${allClients[ck].name}${allQcGrades[ck]?.grade?` <span style="color:${QC_GRADES[allQcGrades[ck].grade].col};">[${QC_GRADES[allQcGrades[ck].grade].label}]</span>`:''}</div>`).join('')}</details>
+      ${missed.map(ck=>`<div onclick="openClientHistory('${ck}')" style="font-size:12px;color:var(--text2);padding:3px 0;cursor:pointer;">• ${allClients[ck].name}${allQcGrades[ck]?.grade?` <span style="color:${QC_GRADES[allQcGrades[ck].grade].col};">[${QC_GRADES[allQcGrades[ck].grade].label}]</span>`:''}</div>`).join('')}</details>
     </div>`;
   });
   body.innerHTML=html;
@@ -2046,7 +2046,7 @@ function renderQcNoFilterReport(body){
   const all=Object.keys(allClients).filter(ck=>qcClientIsActive(ck)&&noFilter(ck));
   const inSched=all.filter(ck=>scheduledKeys.has(ck)).sort(sortF);
   const others=all.filter(ck=>!scheduledKeys.has(ck)).sort(sortF);
-  const row=ck=>`<div style="font-size:13px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;"><span>${allClients[ck].name}${allClients[ck].area?` <span style="color:var(--text3);font-size:11px;">(${allClients[ck].area})</span>`:''}</span><span style="font-size:11px;color:var(--text3);">${allQcGrades[ck]?.barista||''}</span></div>`;
+  const row=ck=>`<div style="font-size:13px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;"><span onclick="openClientHistory('${ck}')" style="cursor:pointer;">${allClients[ck].name}${allClients[ck].area?` <span style="color:var(--text3);font-size:11px;">(${allClients[ck].area})</span>`:''}</span><span style="font-size:11px;color:var(--text3);">${allQcGrades[ck]?.barista||''}</span></div>`;
   body.innerHTML=`<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
     <div style="font-size:15px;font-weight:600;color:var(--red);margin-bottom:8px;">💧 Στο πρόγραμμα χωρίς καταχωρημένο φίλτρο νερού (${inSched.length})</div>
     ${inSched.map(row).join('')||'<div style="font-size:12px;color:var(--text3);">Όλα τα καταστήματα του προγράμματος έχουν φίλτρο ✓</div>'}</div>
@@ -2245,7 +2245,7 @@ function renderQcDayVisits(isManager){
           <div style="font-size:22px;line-height:1.4;flex-shrink:0;">${vt.icon}</div>
           <div style="flex:1;min-width:0;overflow:hidden;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-              <div style="font-size:15px;font-weight:600;color:${isDone?'var(--text3)':'var(--text)'};${isDone?'text-decoration:line-through;':''}white-space:normal;word-break:break-word;">${v.clientName||'—'}</div>
+              <div ${v.clientKey?`onclick="openClientHistory('${v.clientKey}')"`:''} style="cursor:${v.clientKey?'pointer':'default'};font-size:15px;font-weight:600;color:${isDone?'var(--text3)':'var(--text)'};${isDone?'text-decoration:line-through;':''}white-space:normal;word-break:break-word;">${v.clientName||'—'}${v.clientKey?' <span style="font-size:11px;color:var(--blue);">📋</span>':''}</div>
               ${isDone
                 ?`<span style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;flex-shrink:0;">✅ Ολοκλ.</span>`
                 :`<button class="btn" style="padding:6px 12px;font-size:12px;flex-shrink:0;" onclick="completeQcVisit('${vk}')">✓ Τέλος</button>`}
@@ -2612,7 +2612,7 @@ function renderQcDash(){
 
     html+=`<div class="qc-filter-card ${cardStatus}">
       <div class="qfc-header">
-        <div class="qfc-client">${cl.name}</div>
+        <div class="qfc-client" onclick="openClientHistory('${ck}')" style="cursor:pointer;">${cl.name} 📋</div>
         <div class="qfc-area">${cl.area||''}</div>
       </div>
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:6px;">
@@ -3847,7 +3847,7 @@ function renderQcClients(){
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:14px;">${statusDot}</span>
-            <span style="font-size:14px;font-weight:600;color:var(--text);">${cl.name}</span>
+            <span onclick="openClientHistory('${ck}')" style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline dotted;">${cl.name}</span>
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:2px;">${cl.area||''} ${cl.salesRep?'· '+cl.salesRep:''} · ${clientVisits.length} επισκέψεις${region?' · <span style=\"color:var(--blue);\">'+region+'</span>':''}</div>
           ${lastVisit?`<div style="font-size:11px;color:var(--green);margin-top:2px;">✓ Τελ. επίσκεψη: ${new Date(lastVisit.doneAt).toLocaleDateString('el-GR')}</div>`:''}
@@ -4491,7 +4491,8 @@ window.openClientHistory=(ck)=>{
   if(!cl) return;
   const allVisits=Object.values(allQcSchedule)
     .filter(v=>v.clientKey===ck)
-    .sort((a,b)=>(b.doneAt||b.ts||0)-(a.doneAt||a.ts||0));
+    
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||'')||((b.doneAt||0)-(a.doneAt||0)));
   const done=allVisits.filter(v=>v.status==='done');
   const pending=allVisits.filter(v=>v.status!=='done');
   const avgRating=done.filter(v=>v.rating).length>0
@@ -4509,17 +4510,20 @@ window.openClientHistory=(ck)=>{
   const empty=`<div class="empty"><div class="ei">◌</div>Δεν υπάρχουν επισκέψεις</div>`;
   document.getElementById('clientHistoryFeed').innerHTML=allVisits.length?allVisits.map(v=>{
     const isDone=v.status==='done';
-    const dt=v.doneAt?new Date(v.doneAt).toLocaleDateString('el-GR'):v.date||'';
+    const dt=v.date?v.date.split('-').reverse().join('/'):(v.doneAt?new Date(v.doneAt).toLocaleDateString('el-GR'):'');
     return `<div class="feed-item" style="align-items:flex-start;">
       <div style="width:8px;height:8px;border-radius:50%;background:${isDone?'var(--green)':'var(--gold)'};flex-shrink:0;margin-top:6px;"></div>
       <div class="fbody" style="flex:1;min-width:0;">
         <div class="fhdr">
           <span style="font-size:12px;font-weight:600;color:var(--text);">${dt}</span>
           <span style="font-size:11px;color:var(--text3);">${QCT[v.type]||v.type||''}</span>
-          <span class="ftime">👤 ${v.barista||'—'}</span>
+          <span class="ftime">👤 ${isDone&&v.doneBy?v.doneBy:(v.barista||'—')}</span>
           ${isDone?'<span style="font-size:10px;color:var(--green);">✅</span>':'<span style="font-size:10px;color:var(--gold);">⏳</span>'}
         </div>
         ${v.rating?`<div style="margin-top:3px;">${Array.from({length:5},(_,i)=>`<span style="font-size:14px;color:${i<v.rating?'var(--gold)':'var(--border2)'};">★</span>`).join('')}<span style="font-size:10px;color:var(--text3);margin-left:4px;">${v.rating}/5</span></div>`:''}
+        ${v.reason?`<div style="font-size:11px;color:var(--text);background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:5px;padding:6px 8px;margin-top:4px;word-break:break-word;">📝 ${v.reason}</div>`:''}
+        ${v.actions&&v.actions.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${v.actions.map(aid=>{const a=QC_ACTIONS.find(x=>x.id===aid);return a?`<span style="font-size:10px;background:rgba(90,170,122,0.12);border:1px solid rgba(90,170,122,0.3);border-radius:4px;padding:2px 6px;color:var(--green);">${a.icon} ${a.label}</span>`:''}).join('')}</div>`:''}
+        ${v.visitStatus&&v.visitStatus!=='ok'?`<div style="font-size:10px;margin-top:4px;color:${v.visitStatus==='urgent'?'var(--red)':'#d4a030'};">${v.visitStatus==='urgent'?'🔴 Επείγον πρόβλημα':'🟡 Υπό παρακολούθηση'}</div>`:''}
         ${v.notes?`<div style="font-size:11px;color:var(--text2);background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:6px 8px;margin-top:4px;word-break:break-word;">💬 ${v.notes}</div>`:''}
       </div>
     </div>`;
